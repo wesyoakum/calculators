@@ -81,9 +81,11 @@
     }
     .switch input:checked + .slider { background: #1a3a5c; }
     .switch input:checked + .slider::before { transform: translateX(18px); }
-    .linked-value {
-      font-size: 0.8rem; color: #1a3a5c; font-weight: 600;
-      background: #e0eaf4; padding: 2px 8px; border-radius: 4px;
+
+    .link-note {
+      font-size: 0.75rem; color: #1a3a5c; font-style: italic;
+      background: #e0eaf4; padding: 3px 8px; border-radius: 4px;
+      margin-top: -4px; margin-bottom: 10px; display: none;
     }
 
     .version {
@@ -115,6 +117,7 @@
               <label>Direct Labor (DL)</label>
               <input type="text" id="dl" value="94,000">
             </div>
+            <div class="link-note" id="dlLinkedNote">Linked to Labor Cost calculator</div>
             <div class="input-group">
               <label>Indirect Material & Overhead</label>
               <input type="text" id="imoh" value="60,000">
@@ -207,8 +210,7 @@
           <div class="card">
             <div class="toggle-row">
               <label class="switch"><input type="checkbox" id="useLaborCalc"><span class="slider"></span></label>
-              <label for="useLaborCalc">Use in Pricing Engine</label>
-              <span class="linked-value" id="laborLinkedValue" style="display:none;"></span>
+              <label for="useLaborCalc">Feed total into Pricing Engine as Direct Labor</label>
             </div>
             <h2>Work Centers</h2>
             <table class="labor-table">
@@ -324,17 +326,16 @@
     function syncLaborToggle() {
       const on = document.getElementById('useLaborCalc').checked;
       const dlInput = document.getElementById('dl');
-      const badge = document.getElementById('laborLinkedValue');
+      const note = document.getElementById('dlLinkedNote');
       if (on) {
         dlInput.value = Math.round(laborTotal).toLocaleString('en-US');
         dlInput.disabled = true;
         dlInput.style.background = '#e0eaf4';
-        badge.textContent = fmtDollar(laborTotal) + ' from Labor Calc';
-        badge.style.display = '';
+        note.style.display = '';
       } else {
         dlInput.disabled = false;
         dlInput.style.background = '';
-        badge.style.display = 'none';
+        note.style.display = 'none';
       }
       calculatePricing();
     }
@@ -445,6 +446,6 @@
     calculatePricing();
     calculateLabor();
   </script>
-  <div class="version">v0.3.1</div>
+  <div class="version">v0.3.2</div>
 </body>
 </html>
