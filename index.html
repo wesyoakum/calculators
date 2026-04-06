@@ -115,11 +115,6 @@
               <label>Direct Labor (DL)</label>
               <input type="text" id="dl" value="94,000">
             </div>
-            <div class="toggle-row">
-              <label class="switch"><input type="checkbox" id="useLaborCalc"><span class="slider"></span></label>
-              <label for="useLaborCalc">Use Labor Calculator</label>
-              <span class="linked-value" id="laborLinkedValue" style="display:none;"></span>
-            </div>
             <div class="input-group">
               <label>Indirect Material & Overhead</label>
               <input type="text" id="imoh" value="60,000">
@@ -210,6 +205,11 @@
       <div class="grid">
         <div>
           <div class="card">
+            <div class="toggle-row">
+              <label class="switch"><input type="checkbox" id="useLaborCalc"><span class="slider"></span></label>
+              <label for="useLaborCalc">Use in Pricing Engine</label>
+              <span class="linked-value" id="laborLinkedValue" style="display:none;"></span>
+            </div>
             <h2>Work Centers</h2>
             <table class="labor-table">
               <tr>
@@ -445,6 +445,6 @@
     calculatePricing();
     calculateLabor();
   </script>
-  <div class="version">v0.3.0</div>
+  <div class="version">v0.3.1</div>
 </body>
 </html>
