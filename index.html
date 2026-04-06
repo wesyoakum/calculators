@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>C-LARS Calculators</title>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f4f6f8; color: #222; padding: 24px; }
@@ -87,6 +88,13 @@
       background: #e0eaf4; padding: 3px 8px; border-radius: 4px;
       margin-top: -4px; margin-bottom: 10px; display: none;
     }
+
+    .btn-export {
+      display: inline-block; padding: 8px 18px; margin-top: 16px;
+      background: #1a3a5c; color: #fff; border: none; border-radius: 6px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-export:hover { background: #245078; }
 
     .version {
       position: fixed; bottom: 8px; right: 12px;
@@ -201,6 +209,7 @@
           </div>
         </div>
       </div>
+      <button class="btn-export" onclick="exportToExcel()">Export to Excel</button>
     </div>
 
     <!-- ==================== LABOR COST TAB ==================== -->
@@ -445,7 +454,157 @@
 
     calculatePricing();
     calculateLabor();
+
+    // ==================== EXPORT TO EXCEL ====================
+    async function exportToExcel() {
+      const dm = parseNum('dm');
+      const dl = document.getElementById('useLaborCalc').checked ? laborTotal : parseNum('dl');
+      const imoh = parseNum('imoh');
+      const other = parseNum('other');
+      const pDm = parsePct('pctDm');
+      const pDl = parsePct('pctDl');
+      const pImoh = parsePct('pctImoh');
+      const pOther = parsePct('pctOther');
+      const quote = parseNum('quotePrice');
+
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Pricing Engine');
+
+      // Column widths (matching original)
+      ws.getColumn('C').width = 36;
+      ws.getColumn('D').width = 11.22;
+      ws.getColumn('E').width = 16.44;
+      ws.getColumn('F').width = 20.66;
+      ws.getColumn('G').width = 9;
+      ws.getColumn('J').width = 26.11;
+      ws.getColumn('K').width = 12.22;
+
+      // Shared styles
+      const fArial10 = { name: 'Arial', size: 10 };
+      const fArial10B = { name: 'Arial', size: 10, bold: true };
+      const fAptos11 = { name: 'Aptos Narrow', size: 11 };
+      const dollarFmt = '$#,##0;"($"#,##0);\\-';
+      const pctFmt = '0.0%';
+      const acctFmt = '_("$"* #,##0_);_("$"* (#,##0);_("$"* "-"??_);_(@_)';
+      const alignC = { horizontal: 'center', vertical: 'middle' };
+      const alignVC = { vertical: 'middle' };
+      const fillYellow = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+      const fillTan = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCC99' } };
+      const fillOrange = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA8B00' } };
+      const fillPinkBg = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCCCC' } };
+
+      function setCell(addr, value, opts = {}) {
+        const cell = ws.getCell(addr);
+        if (typeof value === 'string' && value.startsWith('=')) {
+          cell.value = { formula: value.substring(1), date1904: false };
+        } else {
+          cell.value = value;
+        }
+        if (opts.font) cell.font = opts.font;
+        if (opts.numFmt) cell.numFmt = opts.numFmt;
+        if (opts.alignment) cell.alignment = opts.alignment;
+        if (opts.fill) cell.fill = opts.fill;
+      }
+
+      // Row 2 - Variable Per Quote header
+      setCell('J2', 'Variable Per Quote', { font: fAptos11, fill: fillYellow });
+
+      // Row 3 - Headers
+      setCell('D3', 'Cost', { font: fArial10B, alignment: alignC });
+      setCell('E3', 'Cost/Target Price', { font: fArial10B, alignment: alignC });
+      setCell('F3', 'Cost/Quoted Price', { font: fArial10B, alignment: alignC });
+      setCell('G3', 'Target %', { font: fArial10B, alignment: alignC });
+      setCell('J3', 'Variable Within Total Cost %', { font: fArial10, numFmt: pctFmt, fill: fillTan, alignment: { horizontal: 'left', vertical: 'middle' } });
+
+      // Row 4 - Direct Material
+      setCell('C4', 'Direct Material (DM)', { font: fArial10, alignment: alignVC });
+      setCell('D4', dm, { font: fArial10, numFmt: dollarFmt, fill: fillYellow, alignment: alignVC });
+      setCell('E4', '=IF(OR(D8=0,D10="-"),"-",D4/D10)', { font: fArial10, numFmt: pctFmt, alignment: alignC });
+      setCell('F4', '=IF(OR(D12=0,D4=0),"-",D4/D12)', { font: fArial10, numFmt: pctFmt, alignment: alignC });
+      setCell('G4', pDm, { font: fArial10, numFmt: pctFmt, fill: fillTan, alignment: alignC });
+      setCell('J4', 'Belongs to Dan', { font: fArial10, numFmt: pctFmt, fill: fillOrange, alignment: { horizontal: 'left', vertical: 'middle' } });
+
+      // Row 5 - Direct Labor
+      setCell('C5', 'Direct Labor (DL)', { font: fArial10, alignment: alignVC });
+      setCell('D5', dl, { font: fArial10, numFmt: dollarFmt, fill: fillYellow, alignment: alignVC });
+      setCell('E5', '=IF(OR(D8=0,D10="-"),"-",D5/D10)', { font: fArial10, numFmt: pctFmt, alignment: alignC });
+      setCell('F5', '=IF(OR(D12=0,D5=0),"-",D5/D12)', { font: fArial10, numFmt: pctFmt, alignment: alignC });
+      setCell('G5', pDl, { font: fArial10, numFmt: pctFmt, fill: fillTan, alignment: alignC });
+      setCell('J5', 'Everything Else Protected', { font: fAptos11 });
+
+      // Row 6 - IMOH
+      setCell('C6', 'Indirect Material & Overhead (IMOH)', { font: fArial10, alignment: alignVC });
+      setCell('D6', imoh, { font: fArial10, numFmt: dollarFmt, fill: fillYellow, alignment: alignVC });
+      setCell('E6', '=IF(OR(D8=0,D10="-"),"-",D6/D10)', { font: fArial10, numFmt: pctFmt, alignment: alignC });
+      setCell('F6', '=IF(OR(D12=0,D6=0),"-",D6/D12)', { font: fArial10, numFmt: pctFmt, alignment: alignC });
+      setCell('G6', pImoh, { font: fArial10, numFmt: pctFmt, fill: fillOrange, alignment: alignC });
+
+      // Row 7 - Other
+      setCell('C7', 'Other', { font: fArial10, alignment: alignVC });
+      setCell('D7', other, { font: fArial10, numFmt: dollarFmt, fill: fillYellow, alignment: alignVC });
+      setCell('E7', pOther, { font: fArial10, numFmt: pctFmt, alignment: alignC });
+      setCell('F7', '=IF(OR(D12=0,D7=0),"-",D7/D12)', { font: fArial10, numFmt: pctFmt, alignment: alignC });
+      setCell('G7', pOther, { font: fArial10, numFmt: pctFmt, fill: fillOrange, alignment: alignC });
+      setCell('J7', 'Good (> 28.5%)', { font: { ...fAptos11, bold: true, color: { argb: 'FF008000' } } });
+
+      // Row 8 - Total Estimated Cost
+      setCell('C8', 'Total Estimated Cost', { font: fArial10, alignment: alignVC });
+      setCell('D8', '=SUM(D4:D7)', { font: fArial10, numFmt: dollarFmt, alignment: alignVC });
+      setCell('E8', '=IF(OR(D8=0,D10="-"),"-",D8/D10)', { font: fArial10, numFmt: pctFmt, alignment: alignC });
+      setCell('F8', '=SUM(F4:F6)', { font: fArial10, numFmt: pctFmt, alignment: alignC });
+      setCell('G8', pDm + pDl + pImoh + pOther, { font: fArial10, numFmt: pctFmt, fill: fillOrange, alignment: alignC });
+      setCell('J8', 'Too Low (< 28.5%)', { font: { ...fAptos11, bold: true, color: { argb: 'FFA50021' } }, fill: fillPinkBg });
+
+      // Row 10 - Target Price
+      setCell('C10', 'Target Price', { font: fArial10B, alignment: alignVC });
+      setCell('D10', '=IF(D8=0,"-",D8/(G8))', { font: fArial10B, numFmt: dollarFmt, alignment: alignVC });
+
+      // Row 11
+      setCell('J11', 'Estimates from Material Only', { font: fAptos11 });
+
+      // Row 12 - Quote Price
+      setCell('C12', 'Quote Price', { font: fArial10, alignment: alignVC });
+      setCell('D12', quote, { font: fArial10, numFmt: dollarFmt, fill: fillYellow, alignment: alignVC });
+      setCell('J12', 'Price', { font: fAptos11 });
+      setCell('K12', '=D4/G4', { font: fAptos11, numFmt: acctFmt });
+
+      // Row 13 - Gross Margin
+      setCell('C13', 'Estimated Gross Margin @ Quote Price', { font: fArial10B, alignment: alignVC });
+      setCell('D13', '=IF(OR(D12=0,D8=0),"-",D12-D8)', { font: fArial10B, numFmt: dollarFmt, alignment: alignVC });
+      setCell('E13', '=D13/D12', { font: fArial10B, numFmt: pctFmt, alignment: alignC });
+      setCell('J13', 'Labor', { font: fAptos11 });
+      setCell('K13', '=D4*G5/G4', { font: fAptos11, numFmt: acctFmt });
+
+      // Row 14
+      setCell('J14', 'IMOH', { font: fAptos11 });
+      setCell('K14', '=D4*G6/G4', { font: fAptos11, numFmt: acctFmt });
+
+      // Row 15 - Budget header
+      setCell('C15', 'Budget Based On Quote Price', { font: fArial10, alignment: { horizontal: 'left', vertical: 'middle' } });
+      setCell('J15', 'Other', { font: fAptos11 });
+      setCell('K15', '=D4*G7/G5', { font: fAptos11, numFmt: acctFmt });
+
+      // Rows 16-19 - Budget items
+      setCell('C16', 'DM', { font: fArial10, alignment: { horizontal: 'left', vertical: 'middle' } });
+      setCell('D16', '=D12*G4', { font: fArial10, numFmt: dollarFmt, alignment: alignVC });
+      setCell('C17', 'IMOH', { font: fArial10, alignment: { horizontal: 'left', vertical: 'middle' } });
+      setCell('D17', '=D12*G6', { font: fArial10, numFmt: dollarFmt, alignment: alignVC });
+      setCell('C18', 'DL', { font: fArial10, alignment: { horizontal: 'left', vertical: 'middle' } });
+      setCell('D18', '=D12*G5', { font: fArial10, numFmt: dollarFmt, alignment: alignVC });
+      setCell('C19', 'Other', { font: fArial10, alignment: { horizontal: 'left', vertical: 'middle' } });
+      setCell('D19', '=D12*G7', { font: fArial10, numFmt: dollarFmt, alignment: alignVC });
+
+      // Download
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Pricing Engine.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   </script>
-  <div class="version">v0.3.2</div>
+  <div class="version">v0.4.0</div>
 </body>
 </html>
