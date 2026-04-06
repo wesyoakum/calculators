@@ -3,14 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>C-LARS Pricing Engine</title>
+  <title>C-LARS Calculators</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f4f6f8; color: #222; padding: 24px; }
-    h1 { font-size: 1.5rem; margin-bottom: 20px; color: #1a3a5c; }
+    h1 { font-size: 1.5rem; margin-bottom: 0; color: #1a3a5c; }
     h2 { font-size: 1.1rem; margin: 20px 0 10px; color: #1a3a5c; border-bottom: 2px solid #d0d8e0; padding-bottom: 4px; }
 
     .container { max-width: 900px; margin: 0 auto; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin: 16px 0 20px; border-bottom: 2px solid #d0d8e0; }
+    .tab {
+      padding: 10px 20px; cursor: pointer; font-weight: 600; font-size: 0.9rem;
+      border: 2px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0;
+      background: #e8ecf0; color: #555; position: relative; bottom: -2px;
+    }
+    .tab:hover { background: #dce2e8; }
+    .tab.active { background: #fff; color: #1a3a5c; border-color: #d0d8e0; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
@@ -44,113 +56,213 @@
 
     .margin-label { font-size: 0.8rem; text-align: center; margin-top: 4px; color: #666; }
 
-    .fmt-dollar::before { content: '$'; }
+    /* Labor calculator table inputs */
+    .labor-table input {
+      width: 80px; padding: 4px 8px; border: 1px solid #c0c8d0;
+      border-radius: 4px; font-size: 0.9rem; text-align: right;
+    }
+    .labor-table input:focus { outline: none; border-color: #1a3a5c; box-shadow: 0 0 0 2px rgba(26,58,92,0.15); }
+    .labor-table th, .labor-table td { padding: 8px 10px; }
+    .labor-total { font-size: 1.5rem; font-weight: 700; color: #1a3a5c; text-align: center; padding: 16px; }
+
+    .version {
+      position: fixed; bottom: 8px; right: 12px;
+      font-size: 0.7rem; color: #999;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>C-LARS Pricing Engine</h1>
+    <h1>C-LARS Calculators</h1>
 
-    <div class="grid">
-      <!-- Left column: Inputs -->
-      <div>
-        <div class="card">
-          <h2>Cost Inputs</h2>
-          <div class="input-group">
-            <label>Direct Material (DM)</label>
-            <input type="text" id="dm" value="115,000">
+    <div class="tabs">
+      <div class="tab active" data-tab="pricing">Pricing Engine</div>
+      <div class="tab" data-tab="labor">Labor Cost</div>
+    </div>
+
+    <!-- ==================== PRICING ENGINE TAB ==================== -->
+    <div id="pricing" class="tab-content active">
+      <div class="grid">
+        <div>
+          <div class="card">
+            <h2>Cost Inputs</h2>
+            <div class="input-group">
+              <label>Direct Material (DM)</label>
+              <input type="text" id="dm" value="115,000">
+            </div>
+            <div class="input-group">
+              <label>Direct Labor (DL)</label>
+              <input type="text" id="dl" value="94,000">
+            </div>
+            <div class="input-group">
+              <label>Indirect Material & Overhead</label>
+              <input type="text" id="imoh" value="60,000">
+            </div>
+            <div class="input-group">
+              <label>Other</label>
+              <input type="text" id="other" value="2,000">
+            </div>
           </div>
-          <div class="input-group">
-            <label>Direct Labor (DL)</label>
-            <input type="text" id="dl" value="94,000">
+
+          <div class="card" style="margin-top: 16px;">
+            <h2>Target Percentages</h2>
+            <div class="input-group">
+              <label>DM %</label>
+              <input type="text" class="pct-input" id="pctDm" value="30.0">
+            </div>
+            <div class="input-group">
+              <label>DL %</label>
+              <input type="text" class="pct-input" id="pctDl" value="25.0">
+            </div>
+            <div class="input-group">
+              <label>IMOH %</label>
+              <input type="text" class="pct-input" id="pctImoh" value="16.0">
+            </div>
+            <div class="input-group">
+              <label>Other %</label>
+              <input type="text" class="pct-input" id="pctOther" value="0.5">
+            </div>
           </div>
-          <div class="input-group">
-            <label>Indirect Material & Overhead</label>
-            <input type="text" id="imoh" value="60,000">
-          </div>
-          <div class="input-group">
-            <label>Other</label>
-            <input type="text" id="other" value="2,000">
+
+          <div class="card" style="margin-top: 16px;">
+            <h2>Quote Price</h2>
+            <div class="input-group">
+              <label>Quote Price</label>
+              <input type="text" id="quotePrice" value="383,000">
+            </div>
           </div>
         </div>
 
-        <div class="card" style="margin-top: 16px;">
-          <h2>Target Percentages</h2>
-          <div class="input-group">
-            <label>DM %</label>
-            <input type="text" class="pct-input" id="pctDm" value="30.0">
+        <div>
+          <div class="card">
+            <h2>Cost Summary</h2>
+            <table>
+              <tr><th></th><th>Cost</th><th>% of Target</th><th>% of Quote</th></tr>
+              <tr><td>Direct Material</td><td id="rDm"></td><td id="rDmPctT"></td><td id="rDmPctQ"></td></tr>
+              <tr><td>Direct Labor</td><td id="rDl"></td><td id="rDlPctT"></td><td id="rDlPctQ"></td></tr>
+              <tr><td>IMOH</td><td id="rImoh"></td><td id="rImohPctT"></td><td id="rImohPctQ"></td></tr>
+              <tr><td>Other</td><td id="rOther"></td><td id="rOtherPctT"></td><td id="rOtherPctQ"></td></tr>
+              <tr class="total"><td>Total Est. Cost</td><td id="rTotal"></td><td id="rTotalPctT"></td><td id="rTotalPctQ"></td></tr>
+            </table>
           </div>
-          <div class="input-group">
-            <label>DL %</label>
-            <input type="text" class="pct-input" id="pctDl" value="25.0">
-          </div>
-          <div class="input-group">
-            <label>IMOH %</label>
-            <input type="text" class="pct-input" id="pctImoh" value="16.0">
-          </div>
-          <div class="input-group">
-            <label>Other %</label>
-            <input type="text" class="pct-input" id="pctOther" value="0.5">
-          </div>
-        </div>
 
-        <div class="card" style="margin-top: 16px;">
-          <h2>Quote Price</h2>
-          <div class="input-group">
-            <label>Quote Price</label>
-            <input type="text" id="quotePrice" value="383,000">
+          <div class="card" style="margin-top: 16px;">
+            <h2>Pricing</h2>
+            <table>
+              <tr><td>Target Price</td><td id="rTargetPrice"></td></tr>
+              <tr><td>Quote Price</td><td id="rQuotePrice"></td></tr>
+            </table>
+            <div id="marginBox" class="result-box" style="margin-top: 12px;"></div>
+            <div id="marginLabel" class="margin-label"></div>
+          </div>
+
+          <div class="card" style="margin-top: 16px;">
+            <h2>Budget Based on Quote Price</h2>
+            <table>
+              <tr><td>DM</td><td id="bDm"></td></tr>
+              <tr><td>DL</td><td id="bDl"></td></tr>
+              <tr><td>IMOH</td><td id="bImoh"></td></tr>
+              <tr><td>Other</td><td id="bOther"></td></tr>
+            </table>
+          </div>
+
+          <div class="card" style="margin-top: 16px;">
+            <h2>Estimates from Material Only</h2>
+            <table>
+              <tr><td>Price</td><td id="eDmPrice"></td></tr>
+              <tr><td>Labor</td><td id="eDmLabor"></td></tr>
+              <tr><td>IMOH</td><td id="eDmImoh"></td></tr>
+              <tr><td>Other</td><td id="eDmOther"></td></tr>
+            </table>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Right column: Results -->
-      <div>
-        <div class="card">
-          <h2>Cost Summary</h2>
-          <table>
-            <tr><th></th><th>Cost</th><th>% of Target</th><th>% of Quote</th></tr>
-            <tr><td>Direct Material</td><td id="rDm"></td><td id="rDmPctT"></td><td id="rDmPctQ"></td></tr>
-            <tr><td>Direct Labor</td><td id="rDl"></td><td id="rDlPctT"></td><td id="rDlPctQ"></td></tr>
-            <tr><td>IMOH</td><td id="rImoh"></td><td id="rImohPctT"></td><td id="rImohPctQ"></td></tr>
-            <tr><td>Other</td><td id="rOther"></td><td id="rOtherPctT"></td><td id="rOtherPctQ"></td></tr>
-            <tr class="total"><td>Total Est. Cost</td><td id="rTotal"></td><td id="rTotalPctT"></td><td id="rTotalPctQ"></td></tr>
-          </table>
+    <!-- ==================== LABOR COST TAB ==================== -->
+    <div id="labor" class="tab-content">
+      <div class="grid">
+        <div>
+          <div class="card">
+            <h2>Work Centers</h2>
+            <table class="labor-table">
+              <tr>
+                <th>Work Center</th>
+                <th>Hours</th>
+                <th>Rate ($/hr)</th>
+                <th>Cost</th>
+              </tr>
+              <tr>
+                <td>Fab</td>
+                <td><input type="text" id="labHrsFab" value="4"></td>
+                <td><input type="text" id="labRateFab" value="30.00"></td>
+                <td id="labCostFab"></td>
+              </tr>
+              <tr>
+                <td>Paint</td>
+                <td><input type="text" id="labHrsPaint" value="4"></td>
+                <td><input type="text" id="labRatePaint" value="30.00"></td>
+                <td id="labCostPaint"></td>
+              </tr>
+              <tr>
+                <td>Assembly</td>
+                <td><input type="text" id="labHrsAssembly" value="8"></td>
+                <td><input type="text" id="labRateAssembly" value="30.00"></td>
+                <td id="labCostAssembly"></td>
+              </tr>
+              <tr>
+                <td>Testing</td>
+                <td><input type="text" id="labHrsTesting" value="3"></td>
+                <td><input type="text" id="labRateTesting" value="30.00"></td>
+                <td id="labCostTesting"></td>
+              </tr>
+              <tr class="total">
+                <td>Total</td>
+                <td id="labHrsTotal"></td>
+                <td></td>
+                <td id="labCostTotal"></td>
+              </tr>
+            </table>
+          </div>
         </div>
 
-        <div class="card" style="margin-top: 16px;">
-          <h2>Pricing</h2>
-          <table>
-            <tr><td>Target Price</td><td id="rTargetPrice"></td></tr>
-            <tr><td>Quote Price</td><td id="rQuotePrice"></td></tr>
-          </table>
-          <div id="marginBox" class="result-box" style="margin-top: 12px;"></div>
-          <div id="marginLabel" class="margin-label"></div>
-        </div>
+        <div>
+          <div class="card">
+            <h2>Summary</h2>
+            <div class="labor-total" id="laborTotalDisplay"></div>
+            <table>
+              <tr><td>Total Hours</td><td id="labSumHrs"></td></tr>
+              <tr><td>Blended Rate</td><td id="labBlendedRate"></td></tr>
+            </table>
+          </div>
 
-        <div class="card" style="margin-top: 16px;">
-          <h2>Budget Based on Quote Price</h2>
-          <table>
-            <tr><td>DM</td><td id="bDm"></td></tr>
-            <tr><td>DL</td><td id="bDl"></td></tr>
-            <tr><td>IMOH</td><td id="bImoh"></td></tr>
-            <tr><td>Other</td><td id="bOther"></td></tr>
-          </table>
-        </div>
-
-        <div class="card" style="margin-top: 16px;">
-          <h2>Estimates from Material Only</h2>
-          <table>
-            <tr><td>Price</td><td id="eDmPrice"></td></tr>
-            <tr><td>Labor</td><td id="eDmLabor"></td></tr>
-            <tr><td>IMOH</td><td id="eDmImoh"></td></tr>
-            <tr><td>Other</td><td id="eDmOther"></td></tr>
-          </table>
+          <div class="card" style="margin-top: 16px;">
+            <h2>Cost Breakdown</h2>
+            <table>
+              <tr><th>Work Center</th><th>% of Total</th></tr>
+              <tr><td>Fab</td><td id="labPctFab"></td></tr>
+              <tr><td>Paint</td><td id="labPctPaint"></td></tr>
+              <tr><td>Assembly</td><td id="labPctAssembly"></td></tr>
+              <tr><td>Testing</td><td id="labPctTesting"></td></tr>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
+    // ==================== TAB SWITCHING ====================
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ==================== SHARED UTILITIES ====================
     function parseNum(id) {
       return parseFloat(document.getElementById(id).value.replace(/[^0-9.\-]/g, '')) || 0;
     }
@@ -175,12 +287,13 @@
     function formatInput(el) {
       const raw = el.value.replace(/[^0-9.\-]/g, '');
       const num = parseFloat(raw);
-      if (!isNaN(num) && !el.classList.contains('pct-input')) {
+      if (!isNaN(num) && !el.classList.contains('pct-input') && !el.closest('.labor-table')) {
         el.value = Math.round(num).toLocaleString('en-US');
       }
     }
 
-    function calculate() {
+    // ==================== PRICING ENGINE ====================
+    function calculatePricing() {
       const dm = parseNum('dm');
       const dl = parseNum('dl');
       const imoh = parseNum('imoh');
@@ -195,60 +308,89 @@
       const totalTargetPct = pDm + pDl + pImoh + pOther;
       const targetPrice = totalCost > 0 ? totalCost / totalTargetPct : 0;
 
-      // Cost summary
       document.getElementById('rDm').textContent = fmtDollar(dm);
       document.getElementById('rDl').textContent = fmtDollar(dl);
       document.getElementById('rImoh').textContent = fmtDollar(imoh);
       document.getElementById('rOther').textContent = fmtDollar(other);
       document.getElementById('rTotal').textContent = fmtDollar(totalCost);
 
-      // % of Target Price
       document.getElementById('rDmPctT').textContent = targetPrice ? fmtPct(dm / targetPrice) : '-';
       document.getElementById('rDlPctT').textContent = targetPrice ? fmtPct(dl / targetPrice) : '-';
       document.getElementById('rImohPctT').textContent = targetPrice ? fmtPct(imoh / targetPrice) : '-';
-      document.getElementById('rOtherPctT').textContent = fmtPct(pOther); // hardcoded % in spreadsheet
+      document.getElementById('rOtherPctT').textContent = fmtPct(pOther);
       document.getElementById('rTotalPctT').textContent = targetPrice ? fmtPct(totalCost / targetPrice) : '-';
 
-      // % of Quote Price
       document.getElementById('rDmPctQ').textContent = quote ? fmtPct(dm / quote) : '-';
       document.getElementById('rDlPctQ').textContent = quote ? fmtPct(dl / quote) : '-';
       document.getElementById('rImohPctQ').textContent = quote ? fmtPct(imoh / quote) : '-';
       document.getElementById('rOtherPctQ').textContent = quote ? fmtPct(other / quote) : '-';
       document.getElementById('rTotalPctQ').textContent = quote ? fmtPct((dm + dl + imoh) / quote) : '-';
 
-      // Pricing
       document.getElementById('rTargetPrice').textContent = fmtDollar(targetPrice);
       document.getElementById('rQuotePrice').textContent = fmtDollar(quote);
 
-      // Gross margin
       const margin = quote - totalCost;
       const marginPct = quote ? margin / quote : 0;
       const marginBox = document.getElementById('marginBox');
       const marginLabel = document.getElementById('marginLabel');
       marginBox.textContent = fmtDollar(margin) + '  (' + fmtPct(marginPct) + ')';
       marginBox.className = 'result-box ' + (marginPct >= 0.285 ? 'result-good' : 'result-low');
-      marginLabel.textContent = 'Estimated Gross Margin — ' + (marginPct >= 0.285 ? 'Good (>= 28.5%)' : 'Too Low (< 28.5%)');
+      marginLabel.textContent = 'Estimated Gross Margin \u2014 ' + (marginPct >= 0.285 ? 'Good (>= 28.5%)' : 'Too Low (< 28.5%)');
 
-      // Budget based on quote price
       document.getElementById('bDm').textContent = fmtDollar(quote * pDm);
       document.getElementById('bDl').textContent = fmtDollar(quote * pDl);
       document.getElementById('bImoh').textContent = fmtDollar(quote * pImoh);
       document.getElementById('bOther').textContent = fmtDollar(quote * pOther);
 
-      // Estimates from material only
       document.getElementById('eDmPrice').textContent = pDm ? fmtDollar(dm / pDm) : '-';
       document.getElementById('eDmLabor').textContent = pDm ? fmtDollar(dm * pDl / pDm) : '-';
       document.getElementById('eDmImoh').textContent = pDm ? fmtDollar(dm * pImoh / pDm) : '-';
       document.getElementById('eDmOther').textContent = pDl ? fmtDollar(dm * pOther / pDl) : '-';
     }
 
-    // Bind inputs
-    document.querySelectorAll('input').forEach(el => {
-      el.addEventListener('input', calculate);
+    // ==================== LABOR COST CALCULATOR ====================
+    const workCenters = ['Fab', 'Paint', 'Assembly', 'Testing'];
+
+    function calculateLabor() {
+      let totalHrs = 0;
+      let totalCost = 0;
+      const costs = {};
+
+      workCenters.forEach(wc => {
+        const hrs = parseNum('labHrs' + wc);
+        const rate = parseNum('labRate' + wc);
+        const cost = hrs * rate;
+        costs[wc] = cost;
+        totalHrs += hrs;
+        totalCost += cost;
+        document.getElementById('labCost' + wc).textContent = fmtDollar(cost);
+      });
+
+      document.getElementById('labHrsTotal').textContent = totalHrs;
+      document.getElementById('labCostTotal').textContent = fmtDollar(totalCost);
+
+      document.getElementById('laborTotalDisplay').textContent = 'Total Labor Cost: ' + fmtDollar(totalCost);
+      document.getElementById('labSumHrs').textContent = totalHrs + ' hrs';
+      document.getElementById('labBlendedRate').textContent = totalHrs ? '$' + (totalCost / totalHrs).toFixed(2) + '/hr' : '-';
+
+      workCenters.forEach(wc => {
+        document.getElementById('labPct' + wc).textContent = totalCost ? fmtPct(costs[wc] / totalCost) : '-';
+      });
+    }
+
+    // ==================== BIND ALL INPUTS ====================
+    document.querySelectorAll('#pricing input').forEach(el => {
+      el.addEventListener('input', calculatePricing);
       el.addEventListener('blur', function() { formatInput(this); });
     });
 
-    calculate();
+    document.querySelectorAll('#labor input').forEach(el => {
+      el.addEventListener('input', calculateLabor);
+    });
+
+    calculatePricing();
+    calculateLabor();
   </script>
+  <div class="version">v0.2.0</div>
 </body>
 </html>
