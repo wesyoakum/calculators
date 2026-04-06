@@ -1,1 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C-LARS Pricing Engine</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f6f8; color: #222; padding: 24px; }
+    h1 { font-size: 1.5rem; margin-bottom: 20px; color: #1a3a5c; }
+    h2 { font-size: 1.1rem; margin: 20px 0 10px; color: #1a3a5c; border-bottom: 2px solid #d0d8e0; padding-bottom: 4px; }
 
+    .container { max-width: 900px; margin: 0 auto; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: #fff; border-radius: 8px; padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 6px 10px; text-align: right; }
+    th { text-align: left; font-weight: 600; }
+    td:first-child, th:first-child { text-align: left; }
+    tr.total { font-weight: 700; border-top: 2px solid #1a3a5c; }
+
+    .input-group { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .input-group label { flex: 1; font-weight: 600; font-size: 0.9rem; }
+    .input-group input {
+      width: 140px; padding: 6px 10px; border: 1px solid #c0c8d0;
+      border-radius: 4px; font-size: 0.9rem; text-align: right;
+    }
+    .input-group input:focus { outline: none; border-color: #1a3a5c; box-shadow: 0 0 0 2px rgba(26,58,92,0.15); }
+    .pct-input { width: 80px !important; }
+
+    .result-box {
+      font-size: 1.3rem; font-weight: 700; padding: 12px 16px;
+      border-radius: 6px; text-align: center; margin-top: 8px;
+    }
+    .result-good { background: #d4edda; color: #155724; }
+    .result-low { background: #f8d7da; color: #721c24; }
+
+    .margin-label { font-size: 0.8rem; text-align: center; margin-top: 4px; color: #666; }
+
+    .fmt-dollar::before { content: '$'; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>C-LARS Pricing Engine</h1>
+
+    <div class="grid">
+      <!-- Left column: Inputs -->
+      <div>
+        <div class="card">
+          <h2>Cost Inputs</h2>
+          <div class="input-group">
+            <label>Direct Material (DM)</label>
+            <input type="text" id="dm" value="115,000">
+          </div>
+          <div class="input-group">
+            <label>Direct Labor (DL)</label>
+            <input type="text" id="dl" value="94,000">
+          </div>
+          <div class="input-group">
+            <label>Indirect Material & Overhead</label>
+            <input type="text" id="imoh" value="60,000">
+          </div>
+          <div class="input-group">
+            <label>Other</label>
+            <input type="text" id="other" value="2,000">
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+          <h2>Target Percentages</h2>
+          <div class="input-group">
+            <label>DM %</label>
+            <input type="text" class="pct-input" id="pctDm" value="30.0">
+          </div>
+          <div class="input-group">
+            <label>DL %</label>
+            <input type="text" class="pct-input" id="pctDl" value="25.0">
+          </div>
+          <div class="input-group">
+            <label>IMOH %</label>
+            <input type="text" class="pct-input" id="pctImoh" value="16.0">
+          </div>
+          <div class="input-group">
+            <label>Other %</label>
+            <input type="text" class="pct-input" id="pctOther" value="0.5">
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+          <h2>Quote Price</h2>
+          <div class="input-group">
+            <label>Quote Price</label>
+            <input type="text" id="quotePrice" value="383,000">
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column: Results -->
+      <div>
+        <div class="card">
+          <h2>Cost Summary</h2>
+          <table>
+            <tr><th></th><th>Cost</th><th>% of Target</th><th>% of Quote</th></tr>
+            <tr><td>Direct Material</td><td id="rDm"></td><td id="rDmPctT"></td><td id="rDmPctQ"></td></tr>
+            <tr><td>Direct Labor</td><td id="rDl"></td><td id="rDlPctT"></td><td id="rDlPctQ"></td></tr>
+            <tr><td>IMOH</td><td id="rImoh"></td><td id="rImohPctT"></td><td id="rImohPctQ"></td></tr>
+            <tr><td>Other</td><td id="rOther"></td><td id="rOtherPctT"></td><td id="rOtherPctQ"></td></tr>
+            <tr class="total"><td>Total Est. Cost</td><td id="rTotal"></td><td id="rTotalPctT"></td><td id="rTotalPctQ"></td></tr>
+          </table>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+          <h2>Pricing</h2>
+          <table>
+            <tr><td>Target Price</td><td id="rTargetPrice"></td></tr>
+            <tr><td>Quote Price</td><td id="rQuotePrice"></td></tr>
+          </table>
+          <div id="marginBox" class="result-box" style="margin-top: 12px;"></div>
+          <div id="marginLabel" class="margin-label"></div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+          <h2>Budget Based on Quote Price</h2>
+          <table>
+            <tr><td>DM</td><td id="bDm"></td></tr>
+            <tr><td>DL</td><td id="bDl"></td></tr>
+            <tr><td>IMOH</td><td id="bImoh"></td></tr>
+            <tr><td>Other</td><td id="bOther"></td></tr>
+          </table>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+          <h2>Estimates from Material Only</h2>
+          <table>
+            <tr><td>Price</td><td id="eDmPrice"></td></tr>
+            <tr><td>Labor</td><td id="eDmLabor"></td></tr>
+            <tr><td>IMOH</td><td id="eDmImoh"></td></tr>
+            <tr><td>Other</td><td id="eDmOther"></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function parseNum(id) {
+      return parseFloat(document.getElementById(id).value.replace(/[^0-9.\-]/g, '')) || 0;
+    }
+
+    function parsePct(id) {
+      return parseNum(id) / 100;
+    }
+
+    function fmtDollar(n) {
+      if (!isFinite(n)) return '-';
+      const neg = n < 0;
+      const abs = Math.abs(Math.round(n));
+      const s = abs.toLocaleString('en-US');
+      return neg ? '($' + s + ')' : '$' + s;
+    }
+
+    function fmtPct(n) {
+      if (!isFinite(n)) return '-';
+      return (n * 100).toFixed(1) + '%';
+    }
+
+    function formatInput(el) {
+      const raw = el.value.replace(/[^0-9.\-]/g, '');
+      const num = parseFloat(raw);
+      if (!isNaN(num) && !el.classList.contains('pct-input')) {
+        el.value = Math.round(num).toLocaleString('en-US');
+      }
+    }
+
+    function calculate() {
+      const dm = parseNum('dm');
+      const dl = parseNum('dl');
+      const imoh = parseNum('imoh');
+      const other = parseNum('other');
+      const pDm = parsePct('pctDm');
+      const pDl = parsePct('pctDl');
+      const pImoh = parsePct('pctImoh');
+      const pOther = parsePct('pctOther');
+      const quote = parseNum('quotePrice');
+
+      const totalCost = dm + dl + imoh + other;
+      const totalTargetPct = pDm + pDl + pImoh + pOther;
+      const targetPrice = totalCost > 0 ? totalCost / totalTargetPct : 0;
+
+      // Cost summary
+      document.getElementById('rDm').textContent = fmtDollar(dm);
+      document.getElementById('rDl').textContent = fmtDollar(dl);
+      document.getElementById('rImoh').textContent = fmtDollar(imoh);
+      document.getElementById('rOther').textContent = fmtDollar(other);
+      document.getElementById('rTotal').textContent = fmtDollar(totalCost);
+
+      // % of Target Price
+      document.getElementById('rDmPctT').textContent = targetPrice ? fmtPct(dm / targetPrice) : '-';
+      document.getElementById('rDlPctT').textContent = targetPrice ? fmtPct(dl / targetPrice) : '-';
+      document.getElementById('rImohPctT').textContent = targetPrice ? fmtPct(imoh / targetPrice) : '-';
+      document.getElementById('rOtherPctT').textContent = fmtPct(pOther); // hardcoded % in spreadsheet
+      document.getElementById('rTotalPctT').textContent = targetPrice ? fmtPct(totalCost / targetPrice) : '-';
+
+      // % of Quote Price
+      document.getElementById('rDmPctQ').textContent = quote ? fmtPct(dm / quote) : '-';
+      document.getElementById('rDlPctQ').textContent = quote ? fmtPct(dl / quote) : '-';
+      document.getElementById('rImohPctQ').textContent = quote ? fmtPct(imoh / quote) : '-';
+      document.getElementById('rOtherPctQ').textContent = quote ? fmtPct(other / quote) : '-';
+      document.getElementById('rTotalPctQ').textContent = quote ? fmtPct((dm + dl + imoh) / quote) : '-';
+
+      // Pricing
+      document.getElementById('rTargetPrice').textContent = fmtDollar(targetPrice);
+      document.getElementById('rQuotePrice').textContent = fmtDollar(quote);
+
+      // Gross margin
+      const margin = quote - totalCost;
+      const marginPct = quote ? margin / quote : 0;
+      const marginBox = document.getElementById('marginBox');
+      const marginLabel = document.getElementById('marginLabel');
+      marginBox.textContent = fmtDollar(margin) + '  (' + fmtPct(marginPct) + ')';
+      marginBox.className = 'result-box ' + (marginPct >= 0.285 ? 'result-good' : 'result-low');
+      marginLabel.textContent = 'Estimated Gross Margin — ' + (marginPct >= 0.285 ? 'Good (>= 28.5%)' : 'Too Low (< 28.5%)');
+
+      // Budget based on quote price
+      document.getElementById('bDm').textContent = fmtDollar(quote * pDm);
+      document.getElementById('bDl').textContent = fmtDollar(quote * pDl);
+      document.getElementById('bImoh').textContent = fmtDollar(quote * pImoh);
+      document.getElementById('bOther').textContent = fmtDollar(quote * pOther);
+
+      // Estimates from material only
+      document.getElementById('eDmPrice').textContent = pDm ? fmtDollar(dm / pDm) : '-';
+      document.getElementById('eDmLabor').textContent = pDm ? fmtDollar(dm * pDl / pDm) : '-';
+      document.getElementById('eDmImoh').textContent = pDm ? fmtDollar(dm * pImoh / pDm) : '-';
+      document.getElementById('eDmOther').textContent = pDl ? fmtDollar(dm * pOther / pDl) : '-';
+    }
+
+    // Bind inputs
+    document.querySelectorAll('input').forEach(el => {
+      el.addEventListener('input', calculate);
+      el.addEventListener('blur', function() { formatInput(this); });
+    });
+
+    calculate();
+  </script>
+</body>
+</html>
