@@ -65,6 +65,27 @@
     .labor-table th, .labor-table td { padding: 8px 10px; }
     .labor-total { font-size: 1.5rem; font-weight: 700; color: #1a3a5c; text-align: center; padding: 16px; }
 
+    /* Toggle switch */
+    .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 8px 0; }
+    .toggle-row label { font-size: 0.85rem; font-weight: 600; color: #1a3a5c; }
+    .switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0; background: #c0c8d0; border-radius: 22px;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .slider::before {
+      content: ''; position: absolute; left: 3px; top: 3px;
+      width: 16px; height: 16px; background: #fff; border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .switch input:checked + .slider { background: #1a3a5c; }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+    .linked-value {
+      font-size: 0.8rem; color: #1a3a5c; font-weight: 600;
+      background: #e0eaf4; padding: 2px 8px; border-radius: 4px;
+    }
+
     .version {
       position: fixed; bottom: 8px; right: 12px;
       font-size: 0.7rem; color: #999;
@@ -93,6 +114,11 @@
             <div class="input-group">
               <label>Direct Labor (DL)</label>
               <input type="text" id="dl" value="94,000">
+            </div>
+            <div class="toggle-row">
+              <label class="switch"><input type="checkbox" id="useLaborCalc"><span class="slider"></span></label>
+              <label for="useLaborCalc">Use Labor Calculator</label>
+              <span class="linked-value" id="laborLinkedValue" style="display:none;"></span>
             </div>
             <div class="input-group">
               <label>Indirect Material & Overhead</label>
@@ -292,10 +318,33 @@
       }
     }
 
+    // ==================== LABOR LINK ====================
+    let laborTotal = 0;
+
+    function syncLaborToggle() {
+      const on = document.getElementById('useLaborCalc').checked;
+      const dlInput = document.getElementById('dl');
+      const badge = document.getElementById('laborLinkedValue');
+      if (on) {
+        dlInput.value = Math.round(laborTotal).toLocaleString('en-US');
+        dlInput.disabled = true;
+        dlInput.style.background = '#e0eaf4';
+        badge.textContent = fmtDollar(laborTotal) + ' from Labor Calc';
+        badge.style.display = '';
+      } else {
+        dlInput.disabled = false;
+        dlInput.style.background = '';
+        badge.style.display = 'none';
+      }
+      calculatePricing();
+    }
+
+    document.getElementById('useLaborCalc').addEventListener('change', syncLaborToggle);
+
     // ==================== PRICING ENGINE ====================
     function calculatePricing() {
       const dm = parseNum('dm');
-      const dl = parseNum('dl');
+      const dl = document.getElementById('useLaborCalc').checked ? laborTotal : parseNum('dl');
       const imoh = parseNum('imoh');
       const other = parseNum('other');
       const pDm = parsePct('pctDm');
@@ -376,6 +425,11 @@
       workCenters.forEach(wc => {
         document.getElementById('labPct' + wc).textContent = totalCost ? fmtPct(costs[wc] / totalCost) : '-';
       });
+
+      laborTotal = totalCost;
+      if (document.getElementById('useLaborCalc').checked) {
+        syncLaborToggle();
+      }
     }
 
     // ==================== BIND ALL INPUTS ====================
@@ -391,6 +445,6 @@
     calculatePricing();
     calculateLabor();
   </script>
-  <div class="version">v0.2.0</div>
+  <div class="version">v0.3.0</div>
 </body>
 </html>
