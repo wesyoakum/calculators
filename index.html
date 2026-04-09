@@ -481,13 +481,11 @@
       const noteEl = document.getElementById(id + 'Note');
       if (val !== null && isFinite(val)) {
         el.value = '$' + Math.round(val).toLocaleString('en-US');
-        el.disabled = true;
         el.style.background = '#e0eaf4';
         if (id === 'quotePrice') document.getElementById('quoteBox').classList.add('auto-filled');
         if (noteEl) { noteEl.textContent = noteText; noteEl.style.display = ''; }
       } else {
         el.value = '';
-        el.disabled = false;
         el.style.background = '';
         if (id === 'quotePrice') document.getElementById('quoteBox').classList.remove('auto-filled');
         if (noteEl) noteEl.style.display = 'none';
@@ -552,9 +550,11 @@
       }
       const quoteNoteText = (dlUser !== null) ? 'Estimated from DM + DL' : 'Estimated from DM';
 
-      // Reset notes for user-set fields (writeAuto skips them)
+      // Reset note + auto-fill styling for user-set fields (writeAuto skips them)
       ['dm','dl','imoh','other','quotePrice'].forEach(id => {
         if (userSet.has(id)) {
+          const el = document.getElementById(id);
+          el.style.background = '';
           const noteEl = document.getElementById(id + 'Note');
           if (noteEl) noteEl.style.display = 'none';
           if (id === 'quotePrice') document.getElementById('quoteBox').classList.remove('auto-filled');
@@ -1012,6 +1012,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.9.2</div>
+  <div class="version">v0.9.3</div>
 </body>
 </html>
