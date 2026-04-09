@@ -48,14 +48,19 @@
     .input-group input:focus { outline: none; border-color: #1a3a5c; box-shadow: 0 0 0 2px rgba(26,58,92,0.15); }
     .pct-input { width: 80px !important; }
 
-    .cost-headers {
-      display: flex; gap: 8px; font-size: 0.7rem; color: #888;
-      font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-      margin-bottom: 4px;
+    .cost-summary-table input {
+      width: 130px; padding: 5px 8px; border: 1px solid #c0c8d0;
+      border-radius: 4px; font-size: 0.9rem; text-align: right;
     }
-    .cost-headers span:first-child { flex: 1; }
-    .cost-headers span:nth-child(2) { width: 140px; text-align: center; }
-    .cost-headers span:nth-child(3) { width: 80px; text-align: center; }
+    .cost-summary-table input:focus {
+      outline: none; border-color: #1a3a5c; box-shadow: 0 0 0 2px rgba(26,58,92,0.15);
+    }
+    .cost-summary-table th, .cost-summary-table td { padding: 6px 8px; }
+    .cost-summary-table th { font-size: 0.78rem; color: #555; text-align: center; }
+    .cost-summary-table th:first-child { text-align: left; }
+    .cost-summary-table td { text-align: right; }
+    .cost-summary-table td:first-child { text-align: left; font-weight: 600; }
+    .cost-summary-table .link-note { margin: 4px 0; }
 
     /* Reference estimates card - less prominent */
     .ref-card {
@@ -178,65 +183,68 @@
 
     <!-- ==================== PRICING ENGINE TAB ==================== -->
     <div id="pricing" class="tab-content active">
-      <div class="grid">
-        <div>
-          <div class="card">
-            <h2>Cost Inputs</h2>
-            <div class="cost-headers">
-              <span></span>
-              <span>Cost</span>
-              <span>Target %</span>
-            </div>
-            <div class="input-group">
-              <label>Direct Material (DM)</label>
-              <input type="text" id="dm" value="115,000">
-              <input type="text" class="pct-input" id="pctDm" value="30.0">
-            </div>
-            <div class="input-group">
-              <label>Direct Labor (DL)</label>
-              <input type="text" id="dl" value="94,000">
-              <input type="text" class="pct-input" id="pctDl" value="25.0">
-            </div>
-            <div class="link-note" id="dlLinkedNote">Linked to Labor Cost calculator</div>
-            <div class="input-group">
-              <label>Indirect Material &amp; Overhead</label>
-              <input type="text" id="imoh" value="60,000">
-              <input type="text" class="pct-input" id="pctImoh" value="16.0">
-            </div>
-            <div class="input-group">
-              <label>Other</label>
-              <input type="text" id="other" value="2,000">
-              <input type="text" class="pct-input" id="pctOther" value="0.5">
-            </div>
-          </div>
-        </div>
+      <div class="card">
+        <h2>Cost Inputs &amp; Summary</h2>
+        <table class="cost-summary-table">
+          <tr>
+            <th></th>
+            <th>Cost</th>
+            <th>Target %</th>
+            <th>% of Target</th>
+            <th>% of Quote</th>
+          </tr>
+          <tr>
+            <td>Direct Material (DM)</td>
+            <td><input type="text" id="dm" value="115,000"></td>
+            <td><input type="text" class="pct-input" id="pctDm" value="30.0"></td>
+            <td id="rDmPctT"></td>
+            <td id="rDmPctQ"></td>
+          </tr>
+          <tr>
+            <td>Direct Labor (DL)</td>
+            <td><input type="text" id="dl" value="94,000"></td>
+            <td><input type="text" class="pct-input" id="pctDl" value="25.0"></td>
+            <td id="rDlPctT"></td>
+            <td id="rDlPctQ"></td>
+          </tr>
+          <tr>
+            <td colspan="5"><div class="link-note" id="dlLinkedNote">Linked to Labor Cost calculator</div></td>
+          </tr>
+          <tr>
+            <td>Indirect Material &amp; Overhead</td>
+            <td><input type="text" id="imoh" value="60,000"></td>
+            <td><input type="text" class="pct-input" id="pctImoh" value="16.0"></td>
+            <td id="rImohPctT"></td>
+            <td id="rImohPctQ"></td>
+          </tr>
+          <tr>
+            <td>Other</td>
+            <td><input type="text" id="other" value="2,000"></td>
+            <td><input type="text" class="pct-input" id="pctOther" value="0.5"></td>
+            <td id="rOtherPctT"></td>
+            <td id="rOtherPctQ"></td>
+          </tr>
+          <tr class="total">
+            <td>Total Est. Cost</td>
+            <td id="rTotal"></td>
+            <td></td>
+            <td id="rTotalPctT"></td>
+            <td id="rTotalPctQ"></td>
+          </tr>
+        </table>
+      </div>
 
-        <div>
-          <div class="card">
-            <h2>Cost Summary</h2>
-            <table>
-              <tr><th></th><th>Cost</th><th>% of Target</th><th>% of Quote</th></tr>
-              <tr><td>Direct Material</td><td id="rDm"></td><td id="rDmPctT"></td><td id="rDmPctQ"></td></tr>
-              <tr><td>Direct Labor</td><td id="rDl"></td><td id="rDlPctT"></td><td id="rDlPctQ"></td></tr>
-              <tr><td>IMOH</td><td id="rImoh"></td><td id="rImohPctT"></td><td id="rImohPctQ"></td></tr>
-              <tr><td>Other</td><td id="rOther"></td><td id="rOtherPctT"></td><td id="rOtherPctQ"></td></tr>
-              <tr class="total"><td>Total Est. Cost</td><td id="rTotal"></td><td id="rTotalPctT"></td><td id="rTotalPctQ"></td></tr>
-            </table>
-          </div>
-
-          <div class="card" style="margin-top: 16px;">
-            <h2>Pricing</h2>
-            <div class="input-group">
-              <label>Quote Price</label>
-              <input type="text" id="quotePrice" value="383,000">
-            </div>
-            <table>
-              <tr><td>Target Price</td><td id="rTargetPrice"></td></tr>
-            </table>
-            <div id="marginBox" class="result-box" style="margin-top: 12px;"></div>
-            <div id="marginLabel" class="margin-label"></div>
-          </div>
+      <div class="card" style="margin-top: 16px;">
+        <h2>Pricing</h2>
+        <div class="input-group">
+          <label>Quote Price</label>
+          <input type="text" id="quotePrice" value="383,000">
         </div>
+        <table>
+          <tr><td>Target Price</td><td id="rTargetPrice"></td></tr>
+        </table>
+        <div id="marginBox" class="result-box" style="margin-top: 12px;"></div>
+        <div id="marginLabel" class="margin-label"></div>
       </div>
 
       <div class="ref-card">
@@ -430,10 +438,6 @@
       const totalTargetPct = pDm + pDl + pImoh + pOther;
       const targetPrice = totalCost > 0 ? totalCost / totalTargetPct : 0;
 
-      document.getElementById('rDm').textContent = fmtDollar(dm);
-      document.getElementById('rDl').textContent = fmtDollar(dl);
-      document.getElementById('rImoh').textContent = fmtDollar(imoh);
-      document.getElementById('rOther').textContent = fmtDollar(other);
       document.getElementById('rTotal').textContent = fmtDollar(totalCost);
 
       document.getElementById('rDmPctT').textContent = targetPrice ? fmtPct(dm / targetPrice) : '-';
@@ -843,6 +847,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.7.0</div>
+  <div class="version">v0.7.1</div>
 </body>
 </html>
