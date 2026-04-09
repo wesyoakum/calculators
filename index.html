@@ -48,6 +48,37 @@
     .input-group input:focus { outline: none; border-color: #1a3a5c; box-shadow: 0 0 0 2px rgba(26,58,92,0.15); }
     .pct-input { width: 80px !important; }
 
+    .cost-headers {
+      display: flex; gap: 8px; font-size: 0.7rem; color: #888;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .cost-headers span:first-child { flex: 1; }
+    .cost-headers span:nth-child(2) { width: 140px; text-align: center; }
+    .cost-headers span:nth-child(3) { width: 80px; text-align: center; }
+
+    /* Reference estimates card - less prominent */
+    .ref-card {
+      background: #f8f9fa; border: 1px solid #e0e4e8; border-radius: 8px;
+      padding: 14px 18px; margin-top: 24px;
+    }
+    .ref-card h2 {
+      font-size: 0.8rem; color: #666; text-transform: uppercase;
+      letter-spacing: 0.5px; border-bottom: 1px solid #e0e4e8;
+      margin: 0 0 10px; padding-bottom: 4px;
+    }
+    .ref-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px;
+    }
+    @media (max-width: 700px) { .ref-grid { grid-template-columns: 1fr; } }
+    .ref-section h3 {
+      font-size: 0.7rem; color: #888; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      margin-bottom: 4px;
+    }
+    .ref-section table { font-size: 0.78rem; color: #555; }
+    .ref-section td { padding: 2px 4px; }
+
     .result-box {
       font-size: 1.3rem; font-weight: 700; padding: 12px 16px;
       border-radius: 6px; text-align: center; margin-top: 8px;
@@ -151,50 +182,31 @@
         <div>
           <div class="card">
             <h2>Cost Inputs</h2>
+            <div class="cost-headers">
+              <span></span>
+              <span>Cost</span>
+              <span>Target %</span>
+            </div>
             <div class="input-group">
               <label>Direct Material (DM)</label>
               <input type="text" id="dm" value="115,000">
+              <input type="text" class="pct-input" id="pctDm" value="30.0">
             </div>
             <div class="input-group">
               <label>Direct Labor (DL)</label>
               <input type="text" id="dl" value="94,000">
+              <input type="text" class="pct-input" id="pctDl" value="25.0">
             </div>
             <div class="link-note" id="dlLinkedNote">Linked to Labor Cost calculator</div>
             <div class="input-group">
-              <label>Indirect Material & Overhead</label>
+              <label>Indirect Material &amp; Overhead</label>
               <input type="text" id="imoh" value="60,000">
+              <input type="text" class="pct-input" id="pctImoh" value="16.0">
             </div>
             <div class="input-group">
               <label>Other</label>
               <input type="text" id="other" value="2,000">
-            </div>
-          </div>
-
-          <div class="card" style="margin-top: 16px;">
-            <h2>Target Percentages</h2>
-            <div class="input-group">
-              <label>DM %</label>
-              <input type="text" class="pct-input" id="pctDm" value="30.0">
-            </div>
-            <div class="input-group">
-              <label>DL %</label>
-              <input type="text" class="pct-input" id="pctDl" value="25.0">
-            </div>
-            <div class="input-group">
-              <label>IMOH %</label>
-              <input type="text" class="pct-input" id="pctImoh" value="16.0">
-            </div>
-            <div class="input-group">
-              <label>Other %</label>
               <input type="text" class="pct-input" id="pctOther" value="0.5">
-            </div>
-          </div>
-
-          <div class="card" style="margin-top: 16px;">
-            <h2>Quote Price</h2>
-            <div class="input-group">
-              <label>Quote Price</label>
-              <input type="text" id="quotePrice" value="383,000">
             </div>
           </div>
         </div>
@@ -214,16 +226,24 @@
 
           <div class="card" style="margin-top: 16px;">
             <h2>Pricing</h2>
+            <div class="input-group">
+              <label>Quote Price</label>
+              <input type="text" id="quotePrice" value="383,000">
+            </div>
             <table>
               <tr><td>Target Price</td><td id="rTargetPrice"></td></tr>
-              <tr><td>Quote Price</td><td id="rQuotePrice"></td></tr>
             </table>
             <div id="marginBox" class="result-box" style="margin-top: 12px;"></div>
             <div id="marginLabel" class="margin-label"></div>
           </div>
+        </div>
+      </div>
 
-          <div class="card" style="margin-top: 16px;">
-            <h2>Budget Based on Quote Price</h2>
+      <div class="ref-card">
+        <h2>Reference Estimates</h2>
+        <div class="ref-grid">
+          <div class="ref-section">
+            <h3>Estimates Based on Quote Price</h3>
             <table>
               <tr><td>DM</td><td id="bDm"></td></tr>
               <tr><td>DL</td><td id="bDl"></td></tr>
@@ -231,9 +251,8 @@
               <tr><td>Other</td><td id="bOther"></td></tr>
             </table>
           </div>
-
-          <div class="card" style="margin-top: 16px;">
-            <h2>Estimates from Material Only</h2>
+          <div class="ref-section">
+            <h3>Estimates from DM Only</h3>
             <table>
               <tr><td>Price</td><td id="eDmPrice"></td></tr>
               <tr><td>Labor</td><td id="eDmLabor"></td></tr>
@@ -241,8 +260,17 @@
               <tr><td>Other</td><td id="eDmOther"></td></tr>
             </table>
           </div>
+          <div class="ref-section">
+            <h3>Estimates from DM + DL</h3>
+            <table>
+              <tr><td>Price</td><td id="eDmDlPrice"></td></tr>
+              <tr><td>IMOH</td><td id="eDmDlImoh"></td></tr>
+              <tr><td>Other</td><td id="eDmDlOther"></td></tr>
+            </table>
+          </div>
         </div>
       </div>
+
       <button class="btn-export" onclick="exportToExcel()">Export to Excel</button>
     </div>
 
@@ -420,7 +448,6 @@
       document.getElementById('rTotalPctQ').textContent = quote ? fmtPct((dm + dl + imoh) / quote) : '-';
 
       document.getElementById('rTargetPrice').textContent = fmtDollar(targetPrice);
-      document.getElementById('rQuotePrice').textContent = fmtDollar(quote);
 
       const margin = quote - totalCost;
       const marginPct = quote ? margin / quote : 0;
@@ -439,6 +466,13 @@
       document.getElementById('eDmLabor').textContent = pDm ? fmtDollar(dm * pDl / pDm) : '-';
       document.getElementById('eDmImoh').textContent = pDm ? fmtDollar(dm * pImoh / pDm) : '-';
       document.getElementById('eDmOther').textContent = pDl ? fmtDollar(dm * pOther / pDl) : '-';
+
+      // Estimates from DM + DL: implied price = (DM+DL) / (pDm+pDl)
+      const pDmDl = pDm + pDl;
+      const dmDlPrice = pDmDl > 0 ? (dm + dl) / pDmDl : 0;
+      document.getElementById('eDmDlPrice').textContent = dmDlPrice ? fmtDollar(dmDlPrice) : '-';
+      document.getElementById('eDmDlImoh').textContent = dmDlPrice ? fmtDollar(dmDlPrice * pImoh) : '-';
+      document.getElementById('eDmDlOther').textContent = dmDlPrice ? fmtDollar(dmDlPrice * pOther) : '-';
     }
 
     // ==================== LABOR COST CALCULATOR ====================
@@ -801,6 +835,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.5.1</div>
+  <div class="version">v0.6.0</div>
 </body>
 </html>
