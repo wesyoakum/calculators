@@ -775,10 +775,13 @@
       }
     }
 
+    const LAST_PROJECT_KEY = 'calculators.lastProjectId';
+
     async function loadProject() {
       const id = selectEl.value;
       if (!id) {
         currentProjectId = null;
+        try { localStorage.removeItem(LAST_PROJECT_KEY); } catch (e) {}
         // Reset to blank pricing inputs; labor inputs keep defaults
         deserializeState({
           pricing: {},
@@ -800,6 +803,7 @@
         if (!res.ok) { showStatus('Load failed'); return; }
         const project = await res.json();
         currentProjectId = project.id;
+        try { localStorage.setItem(LAST_PROJECT_KEY, project.id); } catch (e) {}
         deserializeState(project.data);
         showStatus('Loaded: ' + project.name);
       } catch (e) {
@@ -834,6 +838,7 @@
         if (!res.ok) { showStatus('Save failed'); return; }
         const project = await res.json();
         currentProjectId = project.id;
+        try { localStorage.setItem(LAST_PROJECT_KEY, project.id); } catch (e) {}
         await loadProjectList();
         showStatus('Saved: ' + name);
       } catch (e) {
@@ -850,6 +855,7 @@
         const res = await fetch(API_BASE + '/api/projects/' + id, { method: 'DELETE' });
         if (res.ok) {
           currentProjectId = null;
+          try { localStorage.removeItem(LAST_PROJECT_KEY); } catch (e) {}
           await loadProjectList();
           showStatus('Deleted: ' + name);
         } else {
@@ -860,7 +866,16 @@
       }
     }
 
-    loadProjectList();
+    (async () => {
+      await loadProjectList();
+      // Restore the last loaded project, if any, and it still exists in the list
+      let lastId = null;
+      try { lastId = localStorage.getItem(LAST_PROJECT_KEY); } catch (e) {}
+      if (lastId && Array.from(selectEl.options).some(o => o.value === lastId)) {
+        selectEl.value = lastId;
+        await loadProject();
+      }
+    })();
 
     // ==================== EXPORT TO EXCEL ====================
     async function exportToExcel() {
@@ -1012,6 +1027,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.9.3</div>
+  <div class="version">v0.9.4</div>
 </body>
 </html>
