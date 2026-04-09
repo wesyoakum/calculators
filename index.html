@@ -149,6 +149,11 @@
       background: #e0eaf4; padding: 3px 8px; border-radius: 4px;
       margin-top: -4px; margin-bottom: 10px; display: none;
     }
+    .quote-box.auto-filled { background: #e0eaf4; color: #1a3a5c; }
+    .quote-auto-note {
+      font-size: 0.75rem; color: #1a3a5c; font-style: italic;
+      text-align: center; margin-top: 6px; display: none;
+    }
 
     /* Toolbar */
     .toolbar {
@@ -214,9 +219,10 @@
           <tr><td>Target Price</td><td id="rTargetPrice"></td></tr>
         </table>
         <div class="price-pair">
-          <div class="price-box quote-box">
+          <div class="price-box quote-box" id="quoteBox">
             <div class="price-box-label">Quote Price</div>
             <input type="text" id="quotePrice">
+            <div class="quote-auto-note" id="quotePriceNote"></div>
           </div>
           <div class="price-box" id="marginBox">
             <div class="price-box-label">Estimated Gross Margin</div>
@@ -244,6 +250,9 @@
             <td id="rDmPctQ"></td>
           </tr>
           <tr>
+            <td colspan="5"><div class="link-note" id="dmNote"></div></td>
+          </tr>
+          <tr>
             <td>Direct Labor (DL)</td>
             <td><input type="text" id="dl"></td>
             <td class="target-pct">25%</td>
@@ -251,7 +260,7 @@
             <td id="rDlPctQ"></td>
           </tr>
           <tr>
-            <td colspan="5"><div class="link-note" id="dlLinkedNote">Linked to Labor Cost calculator</div></td>
+            <td colspan="5"><div class="link-note" id="dlNote"></div></td>
           </tr>
           <tr>
             <td>Indirect Material &amp; Overhead</td>
@@ -261,11 +270,17 @@
             <td id="rImohPctQ"></td>
           </tr>
           <tr>
+            <td colspan="5"><div class="link-note" id="imohNote"></div></td>
+          </tr>
+          <tr>
             <td>Other</td>
             <td><input type="text" id="other"></td>
             <td class="target-pct">0.5%</td>
             <td id="rOtherPctT"></td>
             <td id="rOtherPctQ"></td>
+          </tr>
+          <tr>
+            <td colspan="5"><div class="link-note" id="otherNote"></div></td>
           </tr>
           <tr class="total">
             <td>Total Est. Cost</td>
@@ -436,16 +451,13 @@
     function syncLaborToggle() {
       const on = document.getElementById('useLaborCalc').checked;
       const dlInput = document.getElementById('dl');
-      const note = document.getElementById('dlLinkedNote');
       if (on) {
         dlInput.value = '$' + Math.round(laborTotal).toLocaleString('en-US');
         dlInput.disabled = true;
         dlInput.style.background = '#e0eaf4';
-        note.style.display = '';
       } else {
         dlInput.disabled = false;
         dlInput.style.background = '';
-        note.style.display = 'none';
       }
       calculatePricing();
     }
@@ -463,13 +475,22 @@
       return userSet.has(id) ? parseNum(id) : null;
     }
 
-    function writeAuto(id, val) {
+    function writeAuto(id, val, noteText) {
       if (userSet.has(id)) return;
       const el = document.getElementById(id);
+      const noteEl = document.getElementById(id + 'Note');
       if (val !== null && isFinite(val)) {
         el.value = '$' + Math.round(val).toLocaleString('en-US');
+        el.disabled = true;
+        el.style.background = '#e0eaf4';
+        if (id === 'quotePrice') document.getElementById('quoteBox').classList.add('auto-filled');
+        if (noteEl) { noteEl.textContent = noteText; noteEl.style.display = ''; }
       } else {
         el.value = '';
+        el.disabled = false;
+        el.style.background = '';
+        if (id === 'quotePrice') document.getElementById('quoteBox').classList.remove('auto-filled');
+        if (noteEl) noteEl.style.display = 'none';
       }
     }
 
@@ -510,12 +531,29 @@
         otherAuto = quoteUser * pOther;
       }
 
-      // Write auto values back to inputs (skip user-set fields and dl when labor link on)
-      writeAuto('dm', dmAuto);
-      if (!useLaborOn) writeAuto('dl', dlAuto);
-      writeAuto('imoh', imohAuto);
-      writeAuto('other', otherAuto);
-      writeAuto('quotePrice', quoteAuto);
+      // Reset notes for user-set fields (writeAuto skips them)
+      ['dm','dl','imoh','other','quotePrice'].forEach(id => {
+        if (userSet.has(id)) {
+          const noteEl = document.getElementById(id + 'Note');
+          if (noteEl) noteEl.style.display = 'none';
+          if (id === 'quotePrice') document.getElementById('quoteBox').classList.remove('auto-filled');
+        }
+      });
+
+      // Write auto values back to inputs with explanation notes
+      const quoteNoteText = (dlUser !== null) ? 'Estimated from DM + DL' : 'Estimated from DM';
+      writeAuto('dm', dmAuto, 'Estimated from Quote Price');
+      if (useLaborOn) {
+        // DL is locked to labor calc; show its own note, skip auto-fill writeAuto
+        const dlNoteEl = document.getElementById('dlNote');
+        dlNoteEl.textContent = 'Linked to Labor Cost calculator';
+        dlNoteEl.style.display = '';
+      } else {
+        writeAuto('dl', dlAuto, 'Estimated from Quote Price');
+      }
+      writeAuto('imoh', imohAuto, 'Estimated from Quote Price');
+      writeAuto('other', otherAuto, 'Estimated from Quote Price');
+      writeAuto('quotePrice', quoteAuto, quoteNoteText);
 
       // Effective values for calculations
       const dm = dmUser !== null ? dmUser : (dmAuto || 0);
@@ -947,6 +985,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.9.0</div>
+  <div class="version">v0.9.1</div>
 </body>
 </html>
