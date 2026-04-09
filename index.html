@@ -216,7 +216,7 @@
         <div class="price-pair">
           <div class="price-box quote-box">
             <div class="price-box-label">Quote Price</div>
-            <input type="text" id="quotePrice" value="$383,000">
+            <input type="text" id="quotePrice">
           </div>
           <div class="price-box" id="marginBox">
             <div class="price-box-label">Estimated Gross Margin</div>
@@ -238,14 +238,14 @@
           </tr>
           <tr>
             <td>Direct Material (DM)</td>
-            <td><input type="text" id="dm" value="$115,000"></td>
+            <td><input type="text" id="dm"></td>
             <td class="target-pct">30%</td>
             <td id="rDmPctT"></td>
             <td id="rDmPctQ"></td>
           </tr>
           <tr>
             <td>Direct Labor (DL)</td>
-            <td><input type="text" id="dl" value="$94,000"></td>
+            <td><input type="text" id="dl"></td>
             <td class="target-pct">25%</td>
             <td id="rDlPctT"></td>
             <td id="rDlPctQ"></td>
@@ -255,14 +255,14 @@
           </tr>
           <tr>
             <td>Indirect Material &amp; Overhead</td>
-            <td><input type="text" id="imoh" value="$60,000"></td>
+            <td><input type="text" id="imoh"></td>
             <td class="target-pct">16%</td>
             <td id="rImohPctT"></td>
             <td id="rImohPctQ"></td>
           </tr>
           <tr>
             <td>Other</td>
-            <td><input type="text" id="other" value="$2,000"></td>
+            <td><input type="text" id="other"></td>
             <td class="target-pct">0.5%</td>
             <td id="rOtherPctT"></td>
             <td id="rOtherPctQ"></td>
@@ -456,27 +456,84 @@
     // Fixed target percentages (not user-editable)
     const TARGET_PCT = { dm: 0.30, dl: 0.25, imoh: 0.16, other: 0.005 };
 
+    // Track which pricing inputs the user has manually entered (vs auto-filled)
+    const userSet = new Set();
+
+    function getUserVal(id) {
+      return userSet.has(id) ? parseNum(id) : null;
+    }
+
+    function writeAuto(id, val) {
+      if (userSet.has(id)) return;
+      const el = document.getElementById(id);
+      if (val !== null && isFinite(val)) {
+        el.value = '$' + Math.round(val).toLocaleString('en-US');
+      } else {
+        el.value = '';
+      }
+    }
+
     function calculatePricing() {
-      const dm = parseNum('dm');
-      const dl = document.getElementById('useLaborCalc').checked ? laborTotal : parseNum('dl');
-      const imoh = parseNum('imoh');
-      const other = parseNum('other');
       const pDm = TARGET_PCT.dm;
       const pDl = TARGET_PCT.dl;
       const pImoh = TARGET_PCT.imoh;
       const pOther = TARGET_PCT.other;
-      const quote = parseNum('quotePrice');
+      const useLaborOn = document.getElementById('useLaborCalc').checked;
+
+      // Read user-set values (null if not user-entered)
+      const dmUser = getUserVal('dm');
+      const dlUser = useLaborOn ? laborTotal : getUserVal('dl');
+      const imohUser = getUserVal('imoh');
+      const otherUser = getUserVal('other');
+      const quoteUser = getUserVal('quotePrice');
+
+      // Compute auto-fill values
+      let dmAuto = null, dlAuto = null, imohAuto = null, otherAuto = null, quoteAuto = null;
+
+      // Rule 1: quote blank but DM filled → auto-fill quote
+      //   - if DL also filled, use DM+DL estimate
+      //   - else use DM only estimate
+      if (quoteUser === null && dmUser !== null) {
+        if (dlUser !== null) {
+          quoteAuto = (dmUser + dlUser) / (pDm + pDl);
+        } else {
+          quoteAuto = dmUser / pDm;
+        }
+      }
+
+      // Rule 2: quote filled but all 4 cost inputs blank → auto-fill costs from quote
+      const dlEffectivelySet = useLaborOn || userSet.has('dl');
+      if (quoteUser !== null && !userSet.has('dm') && !dlEffectivelySet && !userSet.has('imoh') && !userSet.has('other')) {
+        dmAuto = quoteUser * pDm;
+        dlAuto = quoteUser * pDl;
+        imohAuto = quoteUser * pImoh;
+        otherAuto = quoteUser * pOther;
+      }
+
+      // Write auto values back to inputs (skip user-set fields and dl when labor link on)
+      writeAuto('dm', dmAuto);
+      if (!useLaborOn) writeAuto('dl', dlAuto);
+      writeAuto('imoh', imohAuto);
+      writeAuto('other', otherAuto);
+      writeAuto('quotePrice', quoteAuto);
+
+      // Effective values for calculations
+      const dm = dmUser !== null ? dmUser : (dmAuto || 0);
+      const dl = dlUser !== null ? dlUser : (dlAuto || 0);
+      const imoh = imohUser !== null ? imohUser : (imohAuto || 0);
+      const other = otherUser !== null ? otherUser : (otherAuto || 0);
+      const quote = quoteUser !== null ? quoteUser : (quoteAuto || 0);
 
       const totalCost = dm + dl + imoh + other;
       const totalTargetPct = pDm + pDl + pImoh + pOther;
       const targetPrice = totalCost > 0 ? totalCost / totalTargetPct : 0;
 
-      document.getElementById('rTotal').textContent = fmtDollar(totalCost);
+      document.getElementById('rTotal').textContent = totalCost ? fmtDollar(totalCost) : '-';
 
       document.getElementById('rDmPctT').textContent = targetPrice ? fmtPct(dm / targetPrice) : '-';
       document.getElementById('rDlPctT').textContent = targetPrice ? fmtPct(dl / targetPrice) : '-';
       document.getElementById('rImohPctT').textContent = targetPrice ? fmtPct(imoh / targetPrice) : '-';
-      document.getElementById('rOtherPctT').textContent = fmtPct(pOther);
+      document.getElementById('rOtherPctT').textContent = targetPrice ? fmtPct(other / targetPrice) : '-';
       document.getElementById('rTotalPctT').textContent = targetPrice ? fmtPct(totalCost / targetPrice) : '-';
 
       document.getElementById('rDmPctQ').textContent = quote ? fmtPct(dm / quote) : '-';
@@ -485,30 +542,36 @@
       document.getElementById('rOtherPctQ').textContent = quote ? fmtPct(other / quote) : '-';
       document.getElementById('rTotalPctQ').textContent = quote ? fmtPct((dm + dl + imoh) / quote) : '-';
 
-      document.getElementById('rTargetPrice').textContent = fmtDollar(targetPrice);
+      document.getElementById('rTargetPrice').textContent = targetPrice ? fmtDollar(targetPrice) : '-';
 
-      const margin = quote - totalCost;
-      const marginPct = quote ? margin / quote : 0;
       const marginBox = document.getElementById('marginBox');
       const marginValue = document.getElementById('marginValue');
       const marginLabel = document.getElementById('marginLabel');
-      marginValue.textContent = fmtDollar(margin) + '  (' + fmtPct(marginPct) + ')';
-      marginBox.className = 'price-box ' + (marginPct >= 0.285 ? 'margin-box-good' : 'margin-box-low');
-      marginLabel.textContent = marginPct >= 0.285 ? 'Good (>= 28.5%)' : 'Too Low (< 28.5%)';
+      if (quote && totalCost) {
+        const margin = quote - totalCost;
+        const marginPct = margin / quote;
+        marginValue.textContent = fmtDollar(margin) + '  (' + fmtPct(marginPct) + ')';
+        marginBox.className = 'price-box ' + (marginPct >= 0.285 ? 'margin-box-good' : 'margin-box-low');
+        marginLabel.textContent = marginPct >= 0.285 ? 'Good (>= 28.5%)' : 'Too Low (< 28.5%)';
+      } else {
+        marginValue.textContent = '-';
+        marginBox.className = 'price-box';
+        marginLabel.textContent = '';
+      }
 
-      document.getElementById('bDm').textContent = fmtDollar(quote * pDm);
-      document.getElementById('bDl').textContent = fmtDollar(quote * pDl);
-      document.getElementById('bImoh').textContent = fmtDollar(quote * pImoh);
-      document.getElementById('bOther').textContent = fmtDollar(quote * pOther);
+      document.getElementById('bDm').textContent = quote ? fmtDollar(quote * pDm) : '-';
+      document.getElementById('bDl').textContent = quote ? fmtDollar(quote * pDl) : '-';
+      document.getElementById('bImoh').textContent = quote ? fmtDollar(quote * pImoh) : '-';
+      document.getElementById('bOther').textContent = quote ? fmtDollar(quote * pOther) : '-';
 
-      document.getElementById('eDmPrice').textContent = pDm ? fmtDollar(dm / pDm) : '-';
-      document.getElementById('eDmLabor').textContent = pDm ? fmtDollar(dm * pDl / pDm) : '-';
-      document.getElementById('eDmImoh').textContent = pDm ? fmtDollar(dm * pImoh / pDm) : '-';
-      document.getElementById('eDmOther').textContent = pDl ? fmtDollar(dm * pOther / pDl) : '-';
+      document.getElementById('eDmPrice').textContent = dm ? fmtDollar(dm / pDm) : '-';
+      document.getElementById('eDmLabor').textContent = dm ? fmtDollar(dm * pDl / pDm) : '-';
+      document.getElementById('eDmImoh').textContent = dm ? fmtDollar(dm * pImoh / pDm) : '-';
+      document.getElementById('eDmOther').textContent = dm ? fmtDollar(dm * pOther / pDl) : '-';
 
       // Estimates from DM + DL: implied price = (DM+DL) / (pDm+pDl)
       const pDmDl = pDm + pDl;
-      const dmDlPrice = pDmDl > 0 ? (dm + dl) / pDmDl : 0;
+      const dmDlPrice = (dm && dl) ? (dm + dl) / pDmDl : 0;
       document.getElementById('eDmDlPrice').textContent = dmDlPrice ? fmtDollar(dmDlPrice) : '-';
       document.getElementById('eDmDlImoh').textContent = dmDlPrice ? fmtDollar(dmDlPrice * pImoh) : '-';
       document.getElementById('eDmDlOther').textContent = dmDlPrice ? fmtDollar(dmDlPrice * pOther) : '-';
@@ -547,7 +610,14 @@
 
     // ==================== BIND ALL INPUTS ====================
     document.querySelectorAll('#pricing input').forEach(el => {
-      el.addEventListener('input', calculatePricing);
+      el.addEventListener('input', function() {
+        if (this.value.trim()) {
+          userSet.add(this.id);
+        } else {
+          userSet.delete(this.id);
+        }
+        calculatePricing();
+      });
       el.addEventListener('blur', function() { formatInput(this); });
     });
 
@@ -594,16 +664,17 @@
     }
 
     function deserializeState(data) {
+      userSet.clear();
       if (data.pricing) {
-        document.getElementById('dm').value = data.pricing.dm;
-        document.getElementById('dl').value = data.pricing.dl;
-        document.getElementById('imoh').value = data.pricing.imoh;
-        document.getElementById('other').value = data.pricing.other;
-        document.getElementById('quotePrice').value = data.pricing.quotePrice;
-        // format dollar inputs
         ['dm','dl','imoh','other','quotePrice'].forEach(id => {
+          const v = data.pricing[id];
           const el = document.getElementById(id);
-          el.value = '$' + Math.round(parseFloat(el.value) || 0).toLocaleString('en-US');
+          if (v && v > 0) {
+            el.value = '$' + Math.round(v).toLocaleString('en-US');
+            userSet.add(id);
+          } else {
+            el.value = '';
+          }
         });
       }
       if (data.labor) {
@@ -643,9 +714,9 @@
       const id = selectEl.value;
       if (!id) {
         currentProjectId = null;
-        // Reset to defaults
+        // Reset to blank pricing inputs; labor inputs keep defaults
         deserializeState({
-          pricing: { dm: 115000, dl: 94000, imoh: 60000, other: 2000, quotePrice: 383000 },
+          pricing: {},
           labor: { useLaborCalc: false, workCenters: {
             Fab: { hours: 4, rate: 23 },
             Paint: { hours: 4, rate: 23 },
@@ -876,6 +947,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.8.3</div>
+  <div class="version">v0.9.0</div>
 </body>
 </html>
