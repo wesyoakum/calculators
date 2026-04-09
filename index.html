@@ -276,76 +276,77 @@
 
     <!-- ==================== LABOR COST TAB ==================== -->
     <div id="labor" class="tab-content">
-      <div class="grid">
-        <div>
-          <div class="card">
-            <div class="toggle-row">
-              <label class="switch"><input type="checkbox" id="useLaborCalc"><span class="slider"></span></label>
-              <label for="useLaborCalc">Feed total into Pricing Engine as Direct Labor</label>
-            </div>
-            <h2>Work Centers</h2>
-            <table class="labor-table">
-              <tr>
-                <th>Work Center</th>
-                <th>Hours</th>
-                <th>Rate ($/hr)</th>
-                <th>Cost</th>
-              </tr>
-              <tr>
-                <td>Fab</td>
-                <td><input type="text" id="labHrsFab" value="4"></td>
-                <td><input type="text" id="labRateFab" value="30.00"></td>
-                <td id="labCostFab"></td>
-              </tr>
-              <tr>
-                <td>Paint</td>
-                <td><input type="text" id="labHrsPaint" value="4"></td>
-                <td><input type="text" id="labRatePaint" value="30.00"></td>
-                <td id="labCostPaint"></td>
-              </tr>
-              <tr>
-                <td>Assembly</td>
-                <td><input type="text" id="labHrsAssembly" value="8"></td>
-                <td><input type="text" id="labRateAssembly" value="30.00"></td>
-                <td id="labCostAssembly"></td>
-              </tr>
-              <tr>
-                <td>Testing</td>
-                <td><input type="text" id="labHrsTesting" value="3"></td>
-                <td><input type="text" id="labRateTesting" value="30.00"></td>
-                <td id="labCostTesting"></td>
-              </tr>
-              <tr class="total">
-                <td>Total</td>
-                <td id="labHrsTotal"></td>
-                <td></td>
-                <td id="labCostTotal"></td>
-              </tr>
-            </table>
-          </div>
+      <div class="card">
+        <div class="toggle-row">
+          <label class="switch"><input type="checkbox" id="useLaborCalc"><span class="slider"></span></label>
+          <label for="useLaborCalc">Feed total into Pricing Engine as Direct Labor</label>
         </div>
-
-        <div>
-          <div class="card">
-            <h2>Summary</h2>
-            <div class="labor-total" id="laborTotalDisplay"></div>
-            <table>
-              <tr><td>Total Hours</td><td id="labSumHrs"></td></tr>
-              <tr><td>Blended Rate</td><td id="labBlendedRate"></td></tr>
-            </table>
-          </div>
-
-          <div class="card" style="margin-top: 16px;">
-            <h2>Cost Breakdown</h2>
-            <table>
-              <tr><th>Work Center</th><th>% of Total</th></tr>
-              <tr><td>Fab</td><td id="labPctFab"></td></tr>
-              <tr><td>Paint</td><td id="labPctPaint"></td></tr>
-              <tr><td>Assembly</td><td id="labPctAssembly"></td></tr>
-              <tr><td>Testing</td><td id="labPctTesting"></td></tr>
-            </table>
-          </div>
-        </div>
+        <h2>Work Centers</h2>
+        <table class="labor-table">
+          <tr>
+            <th>Work Center</th>
+            <th>Hours</th>
+            <th>Rate ($/hr)</th>
+            <th>Cost</th>
+            <th>% of Total</th>
+          </tr>
+          <tr>
+            <td>Fab</td>
+            <td><input type="text" id="labHrsFab" value="4"></td>
+            <td><input type="text" id="labRateFab" value="23.00"></td>
+            <td id="labCostFab"></td>
+            <td id="labPctFab"></td>
+          </tr>
+          <tr>
+            <td>Paint</td>
+            <td><input type="text" id="labHrsPaint" value="4"></td>
+            <td><input type="text" id="labRatePaint" value="23.00"></td>
+            <td id="labCostPaint"></td>
+            <td id="labPctPaint"></td>
+          </tr>
+          <tr>
+            <td>Mechanical</td>
+            <td><input type="text" id="labHrsMechanical" value="4"></td>
+            <td><input type="text" id="labRateMechanical" value="23.00"></td>
+            <td id="labCostMechanical"></td>
+            <td id="labPctMechanical"></td>
+          </tr>
+          <tr>
+            <td>Electrical</td>
+            <td><input type="text" id="labHrsElectrical" value="2"></td>
+            <td><input type="text" id="labRateElectrical" value="23.00"></td>
+            <td id="labCostElectrical"></td>
+            <td id="labPctElectrical"></td>
+          </tr>
+          <tr>
+            <td>Hydraulic</td>
+            <td><input type="text" id="labHrsHydraulic" value="2"></td>
+            <td><input type="text" id="labRateHydraulic" value="23.00"></td>
+            <td id="labCostHydraulic"></td>
+            <td id="labPctHydraulic"></td>
+          </tr>
+          <tr>
+            <td>Engineering</td>
+            <td><input type="text" id="labHrsEngineering" value="4"></td>
+            <td><input type="text" id="labRateEngineering" value="23.00"></td>
+            <td id="labCostEngineering"></td>
+            <td id="labPctEngineering"></td>
+          </tr>
+          <tr>
+            <td>Testing</td>
+            <td><input type="text" id="labHrsTesting" value="3"></td>
+            <td><input type="text" id="labRateTesting" value="23.00"></td>
+            <td id="labCostTesting"></td>
+            <td id="labPctTesting"></td>
+          </tr>
+          <tr class="total">
+            <td>Total</td>
+            <td id="labHrsTotal"></td>
+            <td></td>
+            <td id="labCostTotal"></td>
+            <td></td>
+          </tr>
+        </table>
       </div>
     </div>
   </div>
@@ -476,7 +477,7 @@
     }
 
     // ==================== LABOR COST CALCULATOR ====================
-    const workCenters = ['Fab', 'Paint', 'Assembly', 'Testing'];
+    const workCenters = ['Fab', 'Paint', 'Mechanical', 'Electrical', 'Hydraulic', 'Engineering', 'Testing'];
 
     function calculateLabor() {
       let totalHrs = 0;
@@ -495,10 +496,6 @@
 
       document.getElementById('labHrsTotal').textContent = totalHrs;
       document.getElementById('labCostTotal').textContent = fmtDollar(totalCost);
-
-      document.getElementById('laborTotalDisplay').textContent = 'Total Labor Cost: ' + fmtDollar(totalCost);
-      document.getElementById('labSumHrs').textContent = totalHrs + ' hrs';
-      document.getElementById('labBlendedRate').textContent = totalHrs ? '$' + (totalCost / totalHrs).toFixed(2) + '/hr' : '-';
 
       workCenters.forEach(wc => {
         document.getElementById('labPct' + wc).textContent = totalCost ? fmtPct(costs[wc] / totalCost) : '-';
@@ -549,7 +546,10 @@
           workCenters: {
             Fab: { hours: parseNum('labHrsFab'), rate: parseNum('labRateFab') },
             Paint: { hours: parseNum('labHrsPaint'), rate: parseNum('labRatePaint') },
-            Assembly: { hours: parseNum('labHrsAssembly'), rate: parseNum('labRateAssembly') },
+            Mechanical: { hours: parseNum('labHrsMechanical'), rate: parseNum('labRateMechanical') },
+            Electrical: { hours: parseNum('labHrsElectrical'), rate: parseNum('labRateElectrical') },
+            Hydraulic: { hours: parseNum('labHrsHydraulic'), rate: parseNum('labRateHydraulic') },
+            Engineering: { hours: parseNum('labHrsEngineering'), rate: parseNum('labRateEngineering') },
             Testing: { hours: parseNum('labHrsTesting'), rate: parseNum('labRateTesting') }
           }
         }
@@ -575,7 +575,7 @@
       }
       if (data.labor) {
         const wc = data.labor.workCenters || {};
-        ['Fab','Paint','Assembly','Testing'].forEach(name => {
+        workCenters.forEach(name => {
           if (wc[name]) {
             document.getElementById('labHrs' + name).value = wc[name].hours;
             document.getElementById('labRate' + name).value = wc[name].rate;
@@ -613,7 +613,15 @@
         // Reset to defaults
         deserializeState({
           pricing: { dm: 115000, dl: 94000, imoh: 60000, other: 2000, pctDm: 30, pctDl: 25, pctImoh: 16, pctOther: 0.5, quotePrice: 383000 },
-          labor: { useLaborCalc: false, workCenters: { Fab: { hours: 4, rate: 30 }, Paint: { hours: 4, rate: 30 }, Assembly: { hours: 8, rate: 30 }, Testing: { hours: 3, rate: 30 } } }
+          labor: { useLaborCalc: false, workCenters: {
+            Fab: { hours: 4, rate: 23 },
+            Paint: { hours: 4, rate: 23 },
+            Mechanical: { hours: 4, rate: 23 },
+            Electrical: { hours: 2, rate: 23 },
+            Hydraulic: { hours: 2, rate: 23 },
+            Engineering: { hours: 4, rate: 23 },
+            Testing: { hours: 3, rate: 23 }
+          } }
         });
         showStatus('New project');
         return;
@@ -835,6 +843,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.6.0</div>
+  <div class="version">v0.7.0</div>
 </body>
 </html>
