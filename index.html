@@ -499,6 +499,7 @@
       const pDl = TARGET_PCT.dl;
       const pImoh = TARGET_PCT.imoh;
       const pOther = TARGET_PCT.other;
+      const pDmDl = pDm + pDl;
       const useLaborOn = document.getElementById('useLaborCalc').checked;
 
       // Read user-set values (null if not user-entered)
@@ -511,25 +512,45 @@
       // Compute auto-fill values
       let dmAuto = null, dlAuto = null, imohAuto = null, otherAuto = null, quoteAuto = null;
 
-      // Rule 1: quote blank but DM filled → auto-fill quote
-      //   - if DL also filled, use DM+DL estimate
-      //   - else use DM only estimate
+      // Quote auto from DM (and DL): when quote is blank
       if (quoteUser === null && dmUser !== null) {
         if (dlUser !== null) {
-          quoteAuto = (dmUser + dlUser) / (pDm + pDl);
+          quoteAuto = (dmUser + dlUser) / pDmDl;
         } else {
           quoteAuto = dmUser / pDm;
         }
       }
 
-      // Rule 2: quote filled but all 4 cost inputs blank → auto-fill costs from quote
-      const dlEffectivelySet = useLaborOn || userSet.has('dl');
-      if (quoteUser !== null && !userSet.has('dm') && !dlEffectivelySet && !userSet.has('imoh') && !userSet.has('other')) {
-        dmAuto = quoteUser * pDm;
-        dlAuto = quoteUser * pDl;
-        imohAuto = quoteUser * pImoh;
-        otherAuto = quoteUser * pOther;
+      // Effective quote drives all cost auto-fills (user-set or DM/DL-derived)
+      const effQuote = quoteUser !== null ? quoteUser : quoteAuto;
+
+      // DM auto from effective quote (only fires when quote is user-set, since
+      // DM-derived auto-quote requires dmUser to be set already)
+      if (effQuote !== null && dmUser === null) {
+        dmAuto = effQuote * pDm;
       }
+      // DL auto from effective quote (skip when labor calc is linked)
+      if (effQuote !== null && dlUser === null && !useLaborOn) {
+        dlAuto = effQuote * pDl;
+      }
+      // IMOH/Other auto from effective quote
+      if (effQuote !== null && imohUser === null) {
+        imohAuto = effQuote * pImoh;
+      }
+      if (effQuote !== null && otherUser === null) {
+        otherAuto = effQuote * pOther;
+      }
+
+      // Note text for IMOH/Other reflects which estimate is being applied
+      let estimateSourceNote = '';
+      if (quoteUser !== null) {
+        estimateSourceNote = 'Estimated from Quote Price';
+      } else if (dmUser !== null && dlUser !== null) {
+        estimateSourceNote = 'Estimated from DM + DL';
+      } else if (dmUser !== null) {
+        estimateSourceNote = 'Estimated from DM';
+      }
+      const quoteNoteText = (dlUser !== null) ? 'Estimated from DM + DL' : 'Estimated from DM';
 
       // Reset notes for user-set fields (writeAuto skips them)
       ['dm','dl','imoh','other','quotePrice'].forEach(id => {
@@ -541,7 +562,7 @@
       });
 
       // Write auto values back to inputs with explanation notes
-      const quoteNoteText = (dlUser !== null) ? 'Estimated from DM + DL' : 'Estimated from DM';
+      // (DM auto only fires when quoteUser is set, so its source is always Quote Price)
       writeAuto('dm', dmAuto, 'Estimated from Quote Price');
       if (useLaborOn) {
         // DL is locked to labor calc; show its own note, skip auto-fill writeAuto
@@ -549,43 +570,50 @@
         dlNoteEl.textContent = 'Linked to Labor Cost calculator';
         dlNoteEl.style.display = '';
       } else {
-        writeAuto('dl', dlAuto, 'Estimated from Quote Price');
+        writeAuto('dl', dlAuto, estimateSourceNote);
       }
-      writeAuto('imoh', imohAuto, 'Estimated from Quote Price');
-      writeAuto('other', otherAuto, 'Estimated from Quote Price');
+      writeAuto('imoh', imohAuto, estimateSourceNote);
+      writeAuto('other', otherAuto, estimateSourceNote);
       writeAuto('quotePrice', quoteAuto, quoteNoteText);
 
-      // Effective values for calculations
-      const dm = dmUser !== null ? dmUser : (dmAuto || 0);
-      const dl = dlUser !== null ? dlUser : (dlAuto || 0);
-      const imoh = imohUser !== null ? imohUser : (imohAuto || 0);
-      const other = otherUser !== null ? otherUser : (otherAuto || 0);
-      const quote = quoteUser !== null ? quoteUser : (quoteAuto || 0);
+      // Effective values: null if neither user nor auto provided a value
+      const dm = dmUser !== null ? dmUser : dmAuto;
+      const dl = dlUser !== null ? dlUser : dlAuto;
+      const imoh = imohUser !== null ? imohUser : imohAuto;
+      const other = otherUser !== null ? otherUser : otherAuto;
+      const quote = quoteUser !== null ? quoteUser : quoteAuto;
 
-      const totalCost = dm + dl + imoh + other;
+      // For sums: treat null as 0 but track presence so total is null when nothing known
+      const anyCostKnown = (dm !== null) || (dl !== null) || (imoh !== null) || (other !== null);
+      const totalCost = anyCostKnown ? ((dm||0) + (dl||0) + (imoh||0) + (other||0)) : null;
       const totalTargetPct = pDm + pDl + pImoh + pOther;
-      const targetPrice = totalCost > 0 ? totalCost / totalTargetPct : 0;
+      const targetPrice = (totalCost !== null && totalCost > 0) ? totalCost / totalTargetPct : null;
 
-      document.getElementById('rTotal').textContent = totalCost ? fmtDollar(totalCost) : '-';
+      // Display helpers: null → '-', else format (so intentional 0 shows as $0)
+      const fmtKnown = v => v !== null ? fmtDollar(v) : '-';
+      const fmtPctKnown = (n, d) => (n !== null && d !== null && d !== 0) ? fmtPct(n / d) : '-';
 
-      document.getElementById('rDmPctT').textContent = targetPrice ? fmtPct(dm / targetPrice) : '-';
-      document.getElementById('rDlPctT').textContent = targetPrice ? fmtPct(dl / targetPrice) : '-';
-      document.getElementById('rImohPctT').textContent = targetPrice ? fmtPct(imoh / targetPrice) : '-';
-      document.getElementById('rOtherPctT').textContent = targetPrice ? fmtPct(other / targetPrice) : '-';
-      document.getElementById('rTotalPctT').textContent = targetPrice ? fmtPct(totalCost / targetPrice) : '-';
+      document.getElementById('rTotal').textContent = fmtKnown(totalCost);
 
-      document.getElementById('rDmPctQ').textContent = quote ? fmtPct(dm / quote) : '-';
-      document.getElementById('rDlPctQ').textContent = quote ? fmtPct(dl / quote) : '-';
-      document.getElementById('rImohPctQ').textContent = quote ? fmtPct(imoh / quote) : '-';
-      document.getElementById('rOtherPctQ').textContent = quote ? fmtPct(other / quote) : '-';
-      document.getElementById('rTotalPctQ').textContent = quote ? fmtPct((dm + dl + imoh) / quote) : '-';
+      document.getElementById('rDmPctT').textContent = fmtPctKnown(dm, targetPrice);
+      document.getElementById('rDlPctT').textContent = fmtPctKnown(dl, targetPrice);
+      document.getElementById('rImohPctT').textContent = fmtPctKnown(imoh, targetPrice);
+      document.getElementById('rOtherPctT').textContent = fmtPctKnown(other, targetPrice);
+      document.getElementById('rTotalPctT').textContent = fmtPctKnown(totalCost, targetPrice);
 
-      document.getElementById('rTargetPrice').textContent = targetPrice ? fmtDollar(targetPrice) : '-';
+      document.getElementById('rDmPctQ').textContent = fmtPctKnown(dm, quote);
+      document.getElementById('rDlPctQ').textContent = fmtPctKnown(dl, quote);
+      document.getElementById('rImohPctQ').textContent = fmtPctKnown(imoh, quote);
+      document.getElementById('rOtherPctQ').textContent = fmtPctKnown(other, quote);
+      const dmDlImohSum = (dm !== null || dl !== null || imoh !== null) ? ((dm||0)+(dl||0)+(imoh||0)) : null;
+      document.getElementById('rTotalPctQ').textContent = fmtPctKnown(dmDlImohSum, quote);
+
+      document.getElementById('rTargetPrice').textContent = fmtKnown(targetPrice);
 
       const marginBox = document.getElementById('marginBox');
       const marginValue = document.getElementById('marginValue');
       const marginLabel = document.getElementById('marginLabel');
-      if (quote && totalCost) {
+      if (quote !== null && totalCost !== null && quote > 0) {
         const margin = quote - totalCost;
         const marginPct = margin / quote;
         marginValue.textContent = fmtDollar(margin) + '  (' + fmtPct(marginPct) + ')';
@@ -597,22 +625,21 @@
         marginLabel.textContent = '';
       }
 
-      document.getElementById('bDm').textContent = quote ? fmtDollar(quote * pDm) : '-';
-      document.getElementById('bDl').textContent = quote ? fmtDollar(quote * pDl) : '-';
-      document.getElementById('bImoh').textContent = quote ? fmtDollar(quote * pImoh) : '-';
-      document.getElementById('bOther').textContent = quote ? fmtDollar(quote * pOther) : '-';
+      document.getElementById('bDm').textContent = quote !== null ? fmtDollar(quote * pDm) : '-';
+      document.getElementById('bDl').textContent = quote !== null ? fmtDollar(quote * pDl) : '-';
+      document.getElementById('bImoh').textContent = quote !== null ? fmtDollar(quote * pImoh) : '-';
+      document.getElementById('bOther').textContent = quote !== null ? fmtDollar(quote * pOther) : '-';
 
-      document.getElementById('eDmPrice').textContent = dm ? fmtDollar(dm / pDm) : '-';
-      document.getElementById('eDmLabor').textContent = dm ? fmtDollar(dm * pDl / pDm) : '-';
-      document.getElementById('eDmImoh').textContent = dm ? fmtDollar(dm * pImoh / pDm) : '-';
-      document.getElementById('eDmOther').textContent = dm ? fmtDollar(dm * pOther / pDl) : '-';
+      document.getElementById('eDmPrice').textContent = dm !== null ? fmtDollar(dm / pDm) : '-';
+      document.getElementById('eDmLabor').textContent = dm !== null ? fmtDollar(dm * pDl / pDm) : '-';
+      document.getElementById('eDmImoh').textContent = dm !== null ? fmtDollar(dm * pImoh / pDm) : '-';
+      document.getElementById('eDmOther').textContent = dm !== null ? fmtDollar(dm * pOther / pDl) : '-';
 
       // Estimates from DM + DL: implied price = (DM+DL) / (pDm+pDl)
-      const pDmDl = pDm + pDl;
-      const dmDlPrice = (dm && dl) ? (dm + dl) / pDmDl : 0;
-      document.getElementById('eDmDlPrice').textContent = dmDlPrice ? fmtDollar(dmDlPrice) : '-';
-      document.getElementById('eDmDlImoh').textContent = dmDlPrice ? fmtDollar(dmDlPrice * pImoh) : '-';
-      document.getElementById('eDmDlOther').textContent = dmDlPrice ? fmtDollar(dmDlPrice * pOther) : '-';
+      const dmDlPrice = (dm !== null && dl !== null) ? (dm + dl) / pDmDl : null;
+      document.getElementById('eDmDlPrice').textContent = dmDlPrice !== null ? fmtDollar(dmDlPrice) : '-';
+      document.getElementById('eDmDlImoh').textContent = dmDlPrice !== null ? fmtDollar(dmDlPrice * pImoh) : '-';
+      document.getElementById('eDmDlOther').textContent = dmDlPrice !== null ? fmtDollar(dmDlPrice * pOther) : '-';
     }
 
     // ==================== LABOR COST CALCULATOR ====================
@@ -985,6 +1012,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.9.1</div>
+  <div class="version">v0.9.2</div>
 </body>
 </html>
