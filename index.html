@@ -423,13 +423,38 @@
             <td id="labPctTesting"></td>
           </tr>
           <tr class="total">
-            <td>Total</td>
+            <td>Work Centers Total</td>
             <td id="labHrsTotal"></td>
             <td></td>
             <td id="labCostTotal"></td>
             <td></td>
           </tr>
         </table>
+
+        <h2 style="margin-top: 24px;">Labor Library</h2>
+        <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px;">
+          Shared across all projects. Toggle items on to add their cost to this project's labor total.
+        </p>
+        <table class="dm-table">
+          <thead>
+            <tr>
+              <th class="dm-col-toggle">Use</th>
+              <th class="dm-col-desc">Description</th>
+              <th class="dm-col-cost">Cost</th>
+              <th class="dm-col-actions"></th>
+            </tr>
+          </thead>
+          <tbody id="laborLibBody"></tbody>
+        </table>
+        <div class="dm-summary">
+          <span><span id="laborLibSelectedCount">0</span> selected of <span id="laborLibTotalCount">0</span></span>
+          <span>Selected total: <strong id="laborLibSelectedTotal">$0</strong></span>
+        </div>
+
+        <div class="dm-summary" style="margin-top: 6px; background: #e8ecf0;">
+          <span><strong>Grand Total Labor</strong></span>
+          <span><strong id="laborGrandTotal">$0</strong></span>
+        </div>
       </div>
     </div>
 
@@ -686,6 +711,170 @@
       }
     }, true);
 
+    // ==================== LABOR LIBRARY ====================
+    let laborItems = [];
+    const laborSelectedIds = new Set();
+    let laborLibTotal = 0;
+
+    function renderLaborLibTable() {
+      const tbody = document.getElementById('laborLibBody');
+      const rowsHtml = laborItems.map(item => {
+        const sel = laborSelectedIds.has(item.id);
+        const costDisplay = item.cost ? '$' + Math.round(item.cost).toLocaleString('en-US') : '';
+        return `<tr class="${sel ? 'dm-selected' : ''}" data-id="${item.id}">
+          <td class="dm-col-toggle"><input type="checkbox" class="lab-row-toggle" ${sel ? 'checked' : ''}></td>
+          <td class="dm-col-desc"><input type="text" class="lab-row-desc" value="${escapeHtml(item.description)}"></td>
+          <td class="dm-col-cost"><input type="text" class="lab-row-cost" value="${escapeHtml(costDisplay)}"></td>
+          <td class="dm-col-actions"><button class="dm-row-del lab-row-del" title="Delete">&times;</button></td>
+        </tr>`;
+      }).join('');
+      const draftHtml = `<tr class="dm-draft" data-draft="1">
+        <td class="dm-col-toggle"></td>
+        <td class="dm-col-desc"><input type="text" class="lab-row-desc" placeholder="Description"></td>
+        <td class="dm-col-cost"><input type="text" class="lab-row-cost" placeholder="Cost"></td>
+        <td class="dm-col-actions"></td>
+      </tr>`;
+      tbody.innerHTML = rowsHtml + draftHtml;
+      updateLaborLibSummary();
+    }
+
+    function updateLaborLibSummary() {
+      laborLibTotal = laborItems.reduce((sum, it) => laborSelectedIds.has(it.id) ? sum + (it.cost || 0) : sum, 0);
+      document.getElementById('laborLibSelectedCount').textContent = laborSelectedIds.size;
+      document.getElementById('laborLibTotalCount').textContent = laborItems.length;
+      document.getElementById('laborLibSelectedTotal').textContent = '$' + Math.round(laborLibTotal).toLocaleString('en-US');
+    }
+
+    async function loadLaborItems() {
+      try {
+        const res = await fetch(API_BASE + '/api/labor-items');
+        if (!res.ok) return;
+        laborItems = await res.json();
+        const ids = new Set(laborItems.map(i => i.id));
+        Array.from(laborSelectedIds).forEach(id => { if (!ids.has(id)) laborSelectedIds.delete(id); });
+        renderLaborLibTable();
+        calculateLabor();
+      } catch (e) {
+        console.error('Failed to load labor items:', e);
+      }
+    }
+
+    async function promoteLaborDraftRow(description, cost) {
+      try {
+        const res = await fetch(API_BASE + '/api/labor-items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description, cost })
+        });
+        if (!res.ok) { showStatus('Add failed'); return null; }
+        const item = await res.json();
+        laborItems.push(item);
+        return item;
+      } catch (e) {
+        showStatus('Add failed');
+        return null;
+      }
+    }
+
+    let laborSaveTimer = null;
+    function scheduleLaborSave(id, patch) {
+      if (laborSaveTimer) clearTimeout(laborSaveTimer);
+      laborSaveTimer = setTimeout(async () => {
+        try {
+          await fetch(API_BASE + '/api/labor-items/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch)
+          });
+        } catch (e) { /* silent */ }
+      }, 400);
+    }
+
+    async function deleteLaborItem(id) {
+      const item = laborItems.find(i => i.id === id);
+      const label = item && item.description ? item.description : 'this item';
+      if (!confirm('Delete "' + label + '"?')) return;
+      try {
+        const res = await fetch(API_BASE + '/api/labor-items/' + id, { method: 'DELETE' });
+        if (!res.ok) { showStatus('Delete failed'); return; }
+        laborItems = laborItems.filter(i => i.id !== id);
+        laborSelectedIds.delete(id);
+        renderLaborLibTable();
+        calculateLabor();
+      } catch (e) {
+        showStatus('Delete failed');
+      }
+    }
+
+    document.getElementById('laborLibBody').addEventListener('input', async function(e) {
+      const draftTr = e.target.closest('tr.dm-draft');
+      if (draftTr) {
+        if (!e.target.classList.contains('lab-row-desc') && !e.target.classList.contains('lab-row-cost')) return;
+        const descEl = draftTr.querySelector('.lab-row-desc');
+        const costEl = draftTr.querySelector('.lab-row-cost');
+        const description = descEl.value;
+        const costNum = parseFloat(costEl.value.replace(/[^0-9.\-]/g, '')) || 0;
+        const focused = document.activeElement;
+        const focusedClass = focused && focused.classList.contains('lab-row-desc') ? 'desc'
+                          : focused && focused.classList.contains('lab-row-cost') ? 'cost' : null;
+        const caret = focused && focused.selectionStart != null ? focused.selectionStart : null;
+        const item = await promoteLaborDraftRow(description, costNum);
+        if (!item) return;
+        renderLaborLibTable();
+        const tbody = document.getElementById('laborLibBody');
+        const newRow = tbody.querySelector(`tr[data-id="${item.id}"]`);
+        if (newRow && focusedClass) {
+          const target = newRow.querySelector('.lab-row-' + focusedClass);
+          if (target) {
+            target.focus();
+            if (caret != null) target.setSelectionRange(caret, caret);
+          }
+        }
+        return;
+      }
+
+      const tr = e.target.closest('tr[data-id]');
+      if (!tr) return;
+      const id = tr.dataset.id;
+      const item = laborItems.find(i => i.id === id);
+      if (!item) return;
+      if (e.target.classList.contains('lab-row-desc')) {
+        item.description = e.target.value;
+        scheduleLaborSave(id, { description: item.description });
+      } else if (e.target.classList.contains('lab-row-cost')) {
+        const num = parseFloat(e.target.value.replace(/[^0-9.\-]/g, '')) || 0;
+        item.cost = num;
+        scheduleLaborSave(id, { cost: item.cost });
+        if (laborSelectedIds.has(id)) calculateLabor();
+        else updateLaborLibSummary();
+      }
+    });
+
+    document.getElementById('laborLibBody').addEventListener('change', function(e) {
+      if (!e.target.classList.contains('lab-row-toggle')) return;
+      const tr = e.target.closest('tr[data-id]');
+      if (!tr) return;
+      const id = tr.dataset.id;
+      if (e.target.checked) laborSelectedIds.add(id);
+      else laborSelectedIds.delete(id);
+      tr.classList.toggle('dm-selected', e.target.checked);
+      calculateLabor();
+    });
+
+    document.getElementById('laborLibBody').addEventListener('click', function(e) {
+      if (!e.target.classList.contains('lab-row-del')) return;
+      const tr = e.target.closest('tr[data-id]');
+      if (!tr) return;
+      deleteLaborItem(tr.dataset.id);
+    });
+
+    document.getElementById('laborLibBody').addEventListener('blur', function(e) {
+      if (e.target.classList.contains('lab-row-cost')) {
+        const num = parseFloat(e.target.value.replace(/[^0-9.\-]/g, ''));
+        if (!isNaN(num)) e.target.value = '$' + Math.round(num).toLocaleString('en-US');
+      }
+    }, true);
+
     // ==================== LABOR LINK ====================
     let laborTotal = 0;
 
@@ -901,7 +1090,7 @@
 
     function calculateLabor() {
       let totalHrs = 0;
-      let totalCost = 0;
+      let workCenterCost = 0;
       const costs = {};
 
       workCenters.forEach(wc => {
@@ -910,18 +1099,23 @@
         const cost = hrs * rate;
         costs[wc] = cost;
         totalHrs += hrs;
-        totalCost += cost;
+        workCenterCost += cost;
         document.getElementById('labCost' + wc).textContent = fmtDollar(cost);
       });
 
       document.getElementById('labHrsTotal').textContent = totalHrs;
-      document.getElementById('labCostTotal').textContent = fmtDollar(totalCost);
+      document.getElementById('labCostTotal').textContent = fmtDollar(workCenterCost);
 
       workCenters.forEach(wc => {
-        document.getElementById('labPct' + wc).textContent = totalCost ? fmtPct(costs[wc] / totalCost) : '-';
+        document.getElementById('labPct' + wc).textContent = workCenterCost ? fmtPct(costs[wc] / workCenterCost) : '-';
       });
 
-      laborTotal = totalCost;
+      // Refresh labor library subtotal and grand total
+      updateLaborLibSummary();
+      const grandTotal = workCenterCost + laborLibTotal;
+      document.getElementById('laborGrandTotal').textContent = fmtDollar(grandTotal);
+
+      laborTotal = grandTotal;
       if (document.getElementById('useLaborCalc').checked) {
         syncLaborToggle();
       }
@@ -968,6 +1162,7 @@
           quotePrice: parseNum('quotePrice')
         },
         dmSelected: Array.from(dmSelectedIds),
+        laborSelected: Array.from(laborSelectedIds),
         labor: {
           useLaborCalc: document.getElementById('useLaborCalc').checked,
           workCenters: {
@@ -1004,6 +1199,13 @@
         data.dmSelected.forEach(id => { if (known.has(id)) dmSelectedIds.add(id); });
       }
       renderDmTable();
+      // Restore Labor library selections
+      laborSelectedIds.clear();
+      if (Array.isArray(data.laborSelected)) {
+        const known = new Set(laborItems.map(i => i.id));
+        data.laborSelected.forEach(id => { if (known.has(id)) laborSelectedIds.add(id); });
+      }
+      renderLaborLibTable();
       if (data.labor) {
         const wc = data.labor.workCenters || {};
         workCenters.forEach(name => {
@@ -1129,7 +1331,7 @@
     }
 
     (async () => {
-      await Promise.all([loadProjectList(), loadDmItems()]);
+      await Promise.all([loadProjectList(), loadDmItems(), loadLaborItems()]);
       // Restore the last loaded project, if any, and it still exists in the list
       let lastId = null;
       try { lastId = localStorage.getItem(LAST_PROJECT_KEY); } catch (e) {}
@@ -1289,6 +1491,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.10.1</div>
+  <div class="version">v0.11.0</div>
 </body>
 </html>
