@@ -61,6 +61,7 @@
     .cost-summary-table td { text-align: right; }
     .cost-summary-table td:first-child { text-align: left; font-weight: 600; }
     .cost-summary-table .link-note { margin: 4px 0; }
+    .cost-summary-table td.target-pct { color: #666; text-align: center; }
 
     /* Reference estimates card - less prominent */
     .ref-card {
@@ -184,6 +185,19 @@
     <!-- ==================== PRICING ENGINE TAB ==================== -->
     <div id="pricing" class="tab-content active">
       <div class="card">
+        <h2>Pricing</h2>
+        <div class="input-group">
+          <label>Quote Price</label>
+          <input type="text" id="quotePrice" value="383,000">
+        </div>
+        <table>
+          <tr><td>Target Price</td><td id="rTargetPrice"></td></tr>
+        </table>
+        <div id="marginBox" class="result-box" style="margin-top: 12px;"></div>
+        <div id="marginLabel" class="margin-label"></div>
+      </div>
+
+      <div class="card" style="margin-top: 16px;">
         <h2>Cost Inputs &amp; Summary</h2>
         <table class="cost-summary-table">
           <tr>
@@ -196,14 +210,14 @@
           <tr>
             <td>Direct Material (DM)</td>
             <td><input type="text" id="dm" value="115,000"></td>
-            <td><input type="text" class="pct-input" id="pctDm" value="30.0"></td>
+            <td class="target-pct">30%</td>
             <td id="rDmPctT"></td>
             <td id="rDmPctQ"></td>
           </tr>
           <tr>
             <td>Direct Labor (DL)</td>
             <td><input type="text" id="dl" value="94,000"></td>
-            <td><input type="text" class="pct-input" id="pctDl" value="25.0"></td>
+            <td class="target-pct">25%</td>
             <td id="rDlPctT"></td>
             <td id="rDlPctQ"></td>
           </tr>
@@ -213,38 +227,25 @@
           <tr>
             <td>Indirect Material &amp; Overhead</td>
             <td><input type="text" id="imoh" value="60,000"></td>
-            <td><input type="text" class="pct-input" id="pctImoh" value="16.0"></td>
+            <td class="target-pct">16%</td>
             <td id="rImohPctT"></td>
             <td id="rImohPctQ"></td>
           </tr>
           <tr>
             <td>Other</td>
             <td><input type="text" id="other" value="2,000"></td>
-            <td><input type="text" class="pct-input" id="pctOther" value="0.5"></td>
+            <td class="target-pct">0.5%</td>
             <td id="rOtherPctT"></td>
             <td id="rOtherPctQ"></td>
           </tr>
           <tr class="total">
             <td>Total Est. Cost</td>
             <td id="rTotal"></td>
-            <td></td>
+            <td class="target-pct">71.5%</td>
             <td id="rTotalPctT"></td>
             <td id="rTotalPctQ"></td>
           </tr>
         </table>
-      </div>
-
-      <div class="card" style="margin-top: 16px;">
-        <h2>Pricing</h2>
-        <div class="input-group">
-          <label>Quote Price</label>
-          <input type="text" id="quotePrice" value="383,000">
-        </div>
-        <table>
-          <tr><td>Target Price</td><td id="rTargetPrice"></td></tr>
-        </table>
-        <div id="marginBox" class="result-box" style="margin-top: 12px;"></div>
-        <div id="marginLabel" class="margin-label"></div>
       </div>
 
       <div class="ref-card">
@@ -423,15 +424,18 @@
     document.getElementById('useLaborCalc').addEventListener('change', syncLaborToggle);
 
     // ==================== PRICING ENGINE ====================
+    // Fixed target percentages (not user-editable)
+    const TARGET_PCT = { dm: 0.30, dl: 0.25, imoh: 0.16, other: 0.005 };
+
     function calculatePricing() {
       const dm = parseNum('dm');
       const dl = document.getElementById('useLaborCalc').checked ? laborTotal : parseNum('dl');
       const imoh = parseNum('imoh');
       const other = parseNum('other');
-      const pDm = parsePct('pctDm');
-      const pDl = parsePct('pctDl');
-      const pImoh = parsePct('pctImoh');
-      const pOther = parsePct('pctOther');
+      const pDm = TARGET_PCT.dm;
+      const pDl = TARGET_PCT.dl;
+      const pImoh = TARGET_PCT.imoh;
+      const pOther = TARGET_PCT.other;
       const quote = parseNum('quotePrice');
 
       const totalCost = dm + dl + imoh + other;
@@ -542,7 +546,6 @@
       return {
         pricing: {
           dm: parseNum('dm'), dl: parseNum('dl'), imoh: parseNum('imoh'), other: parseNum('other'),
-          pctDm: parseNum('pctDm'), pctDl: parseNum('pctDl'), pctImoh: parseNum('pctImoh'), pctOther: parseNum('pctOther'),
           quotePrice: parseNum('quotePrice')
         },
         labor: {
@@ -566,10 +569,6 @@
         document.getElementById('dl').value = data.pricing.dl;
         document.getElementById('imoh').value = data.pricing.imoh;
         document.getElementById('other').value = data.pricing.other;
-        document.getElementById('pctDm').value = data.pricing.pctDm;
-        document.getElementById('pctDl').value = data.pricing.pctDl;
-        document.getElementById('pctImoh').value = data.pricing.pctImoh;
-        document.getElementById('pctOther').value = data.pricing.pctOther;
         document.getElementById('quotePrice').value = data.pricing.quotePrice;
         // format dollar inputs
         ['dm','dl','imoh','other','quotePrice'].forEach(id => {
@@ -616,7 +615,7 @@
         currentProjectId = null;
         // Reset to defaults
         deserializeState({
-          pricing: { dm: 115000, dl: 94000, imoh: 60000, other: 2000, pctDm: 30, pctDl: 25, pctImoh: 16, pctOther: 0.5, quotePrice: 383000 },
+          pricing: { dm: 115000, dl: 94000, imoh: 60000, other: 2000, quotePrice: 383000 },
           labor: { useLaborCalc: false, workCenters: {
             Fab: { hours: 4, rate: 23 },
             Paint: { hours: 4, rate: 23 },
@@ -703,10 +702,10 @@
       const dl = document.getElementById('useLaborCalc').checked ? laborTotal : parseNum('dl');
       const imoh = parseNum('imoh');
       const other = parseNum('other');
-      const pDm = parsePct('pctDm');
-      const pDl = parsePct('pctDl');
-      const pImoh = parsePct('pctImoh');
-      const pOther = parsePct('pctOther');
+      const pDm = TARGET_PCT.dm;
+      const pDl = TARGET_PCT.dl;
+      const pImoh = TARGET_PCT.imoh;
+      const pOther = TARGET_PCT.other;
       const quote = parseNum('quotePrice');
 
       const wb = new ExcelJS.Workbook();
@@ -847,6 +846,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.7.1</div>
+  <div class="version">v0.8.0</div>
 </body>
 </html>
