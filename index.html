@@ -213,7 +213,7 @@
         <div class="price-pair">
           <div class="price-box quote-box">
             <div class="price-box-label">Quote Price</div>
-            <input type="text" id="quotePrice" value="383,000">
+            <input type="text" id="quotePrice" value="$383,000">
           </div>
           <div class="price-box" id="marginBox">
             <div class="price-box-label">Estimated Gross Margin</div>
@@ -235,14 +235,14 @@
           </tr>
           <tr>
             <td>Direct Material (DM)</td>
-            <td><input type="text" id="dm" value="115,000"></td>
+            <td><input type="text" id="dm" value="$115,000"></td>
             <td class="target-pct">30%</td>
             <td id="rDmPctT"></td>
             <td id="rDmPctQ"></td>
           </tr>
           <tr>
             <td>Direct Labor (DL)</td>
-            <td><input type="text" id="dl" value="94,000"></td>
+            <td><input type="text" id="dl" value="$94,000"></td>
             <td class="target-pct">25%</td>
             <td id="rDlPctT"></td>
             <td id="rDlPctQ"></td>
@@ -252,14 +252,14 @@
           </tr>
           <tr>
             <td>Indirect Material &amp; Overhead</td>
-            <td><input type="text" id="imoh" value="60,000"></td>
+            <td><input type="text" id="imoh" value="$60,000"></td>
             <td class="target-pct">16%</td>
             <td id="rImohPctT"></td>
             <td id="rImohPctQ"></td>
           </tr>
           <tr>
             <td>Other</td>
-            <td><input type="text" id="other" value="2,000"></td>
+            <td><input type="text" id="other" value="$2,000"></td>
             <td class="target-pct">0.5%</td>
             <td id="rOtherPctT"></td>
             <td id="rOtherPctQ"></td>
@@ -423,7 +423,7 @@
       const raw = el.value.replace(/[^0-9.\-]/g, '');
       const num = parseFloat(raw);
       if (!isNaN(num) && !el.classList.contains('pct-input') && !el.closest('.labor-table')) {
-        el.value = Math.round(num).toLocaleString('en-US');
+        el.value = '$' + Math.round(num).toLocaleString('en-US');
       }
     }
 
@@ -435,7 +435,7 @@
       const dlInput = document.getElementById('dl');
       const note = document.getElementById('dlLinkedNote');
       if (on) {
-        dlInput.value = Math.round(laborTotal).toLocaleString('en-US');
+        dlInput.value = '$' + Math.round(laborTotal).toLocaleString('en-US');
         dlInput.disabled = true;
         dlInput.style.background = '#e0eaf4';
         note.style.display = '';
@@ -600,7 +600,7 @@
         // format dollar inputs
         ['dm','dl','imoh','other','quotePrice'].forEach(id => {
           const el = document.getElementById(id);
-          el.value = Math.round(parseFloat(el.value) || 0).toLocaleString('en-US');
+          el.value = '$' + Math.round(parseFloat(el.value) || 0).toLocaleString('en-US');
         });
       }
       if (data.labor) {
@@ -873,6 +873,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.8.1</div>
+  <div class="version">v0.8.2</div>
 </body>
 </html>
