@@ -490,6 +490,10 @@
     calculateLabor();
 
     // ==================== PROJECT SAVE / LOAD ====================
+    // API base: use same-origin if on Cloudflare Pages, otherwise hit the Cloudflare URL
+    const API_BASE = location.hostname.includes('pages.dev') || location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+      ? ''
+      : 'https://c-lars-calculators.pages.dev';
     let currentProjectId = null;
     const statusEl = document.getElementById('toolbarStatus');
     const selectEl = document.getElementById('projectSelect');
@@ -552,7 +556,7 @@
 
     async function loadProjectList() {
       try {
-        const res = await fetch('/api/projects');
+        const res = await fetch(API_BASE + '/api/projects');
         if (!res.ok) return;
         const projects = await res.json();
         selectEl.innerHTML = '<option value="">-- New Project --</option>';
@@ -581,7 +585,7 @@
         return;
       }
       try {
-        const res = await fetch('/api/projects/' + id);
+        const res = await fetch(API_BASE + '/api/projects/' + id);
         if (!res.ok) { showStatus('Load failed'); return; }
         const project = await res.json();
         currentProjectId = project.id;
@@ -595,7 +599,7 @@
     async function saveProject() {
       if (!currentProjectId) { saveProjectAs(); return; }
       try {
-        const res = await fetch('/api/projects/' + currentProjectId, {
+        const res = await fetch(API_BASE + '/api/projects/' + currentProjectId, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ data: serializeState() })
@@ -611,7 +615,7 @@
       const name = prompt('Project name:');
       if (!name) return;
       try {
-        const res = await fetch('/api/projects', {
+        const res = await fetch(API_BASE + '/api/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, data: serializeState() })
@@ -632,7 +636,7 @@
       const name = selectEl.options[selectEl.selectedIndex].textContent;
       if (!confirm('Delete "' + name + '"?')) return;
       try {
-        const res = await fetch('/api/projects/' + id, { method: 'DELETE' });
+        const res = await fetch(API_BASE + '/api/projects/' + id, { method: 'DELETE' });
         if (res.ok) {
           currentProjectId = null;
           await loadProjectList();
@@ -797,6 +801,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.5.0</div>
+  <div class="version">v0.5.1</div>
 </body>
 </html>
