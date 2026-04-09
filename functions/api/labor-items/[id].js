@@ -11,7 +11,10 @@ export async function onRequestPut(context) {
     const sets = [];
     const vals = [];
     if (body.description !== undefined) { sets.push('description = ?'); vals.push(body.description.toString()); }
-    if (body.cost !== undefined) { sets.push('cost = ?'); vals.push(Number(body.cost) || 0); }
+    if (body.hours !== undefined) {
+      const h = body.hours && typeof body.hours === 'object' ? body.hours : {};
+      sets.push('hours = ?'); vals.push(JSON.stringify(h));
+    }
     sets.push('updated_at = ?'); vals.push(now);
     vals.push(id);
 
