@@ -85,14 +85,35 @@
     .ref-section table { font-size: 0.78rem; color: #555; }
     .ref-section td { padding: 2px 4px; }
 
-    .result-box {
-      font-size: 1.3rem; font-weight: 700; padding: 12px 16px;
-      border-radius: 6px; text-align: center; margin-top: 8px;
+    .price-pair {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;
     }
-    .result-good { background: #d4edda; color: #155724; }
-    .result-low { background: #f8d7da; color: #721c24; }
+    @media (max-width: 700px) { .price-pair { grid-template-columns: 1fr; } }
+    .price-box {
+      text-align: center; padding: 14px 16px; border-radius: 8px;
+    }
+    .price-box-label {
+      font-size: 0.85rem; font-weight: 600; margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+    .price-box-value {
+      font-size: 1.5rem; font-weight: 700;
+    }
+    .quote-box {
+      background: #d6e4f0; color: #0c2d4d;
+    }
+    .quote-box input {
+      font-size: 1.5rem; font-weight: 700; width: 100%;
+      text-align: center; background: transparent; border: none;
+      color: inherit; padding: 0; font-family: inherit;
+    }
+    .quote-box input:focus {
+      outline: 2px solid #1a3a5c; outline-offset: 2px; border-radius: 4px;
+    }
+    .margin-box-good { background: #d4edda; color: #155724; }
+    .margin-box-low { background: #f8d7da; color: #721c24; }
 
-    .margin-label { font-size: 0.8rem; text-align: center; margin-top: 4px; color: #666; }
+    .margin-label { font-size: 0.8rem; text-align: center; margin-top: 6px; color: #666; }
 
     /* Labor calculator table inputs */
     .labor-table input {
@@ -186,14 +207,19 @@
     <div id="pricing" class="tab-content active">
       <div class="card">
         <h2>Pricing</h2>
-        <div class="input-group">
-          <label>Quote Price</label>
-          <input type="text" id="quotePrice" value="383,000">
-        </div>
         <table>
           <tr><td>Target Price</td><td id="rTargetPrice"></td></tr>
         </table>
-        <div id="marginBox" class="result-box" style="margin-top: 12px;"></div>
+        <div class="price-pair">
+          <div class="price-box quote-box">
+            <div class="price-box-label">Quote Price</div>
+            <input type="text" id="quotePrice" value="383,000">
+          </div>
+          <div class="price-box" id="marginBox">
+            <div class="price-box-label">Estimated Gross Margin</div>
+            <div class="price-box-value" id="marginValue"></div>
+          </div>
+        </div>
         <div id="marginLabel" class="margin-label"></div>
       </div>
 
@@ -461,10 +487,11 @@
       const margin = quote - totalCost;
       const marginPct = quote ? margin / quote : 0;
       const marginBox = document.getElementById('marginBox');
+      const marginValue = document.getElementById('marginValue');
       const marginLabel = document.getElementById('marginLabel');
-      marginBox.textContent = fmtDollar(margin) + '  (' + fmtPct(marginPct) + ')';
-      marginBox.className = 'result-box ' + (marginPct >= 0.285 ? 'result-good' : 'result-low');
-      marginLabel.textContent = 'Estimated Gross Margin \u2014 ' + (marginPct >= 0.285 ? 'Good (>= 28.5%)' : 'Too Low (< 28.5%)');
+      marginValue.textContent = fmtDollar(margin) + '  (' + fmtPct(marginPct) + ')';
+      marginBox.className = 'price-box ' + (marginPct >= 0.285 ? 'margin-box-good' : 'margin-box-low');
+      marginLabel.textContent = marginPct >= 0.285 ? 'Good (>= 28.5%)' : 'Too Low (< 28.5%)';
 
       document.getElementById('bDm').textContent = fmtDollar(quote * pDm);
       document.getElementById('bDl').textContent = fmtDollar(quote * pDl);
@@ -846,6 +873,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.8.0</div>
+  <div class="version">v0.8.1</div>
 </body>
 </html>
