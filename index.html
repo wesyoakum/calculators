@@ -132,14 +132,13 @@
     .dm-table input[type="text"]:focus {
       outline: none; border-color: #1a3a5c; box-shadow: 0 0 0 2px rgba(26,58,92,0.15);
     }
-    .dm-table tr.dm-empty td { text-align: center; color: #888; padding: 14px; font-style: italic; }
     .dm-table tr.dm-selected { background: #e0eaf4; }
+    .dm-table tr.dm-draft input { background: #fff; }
     .dm-row-del {
       background: transparent; border: none; color: #a50021; cursor: pointer;
       font-size: 1.1rem; line-height: 1; padding: 2px 6px;
     }
     .dm-row-del:hover { color: #c0002a; }
-    .dm-add-row { margin-top: 12px; }
     .dm-summary {
       margin-top: 14px; padding: 10px 12px; background: #f4f6f8;
       border-radius: 6px; font-size: 0.85rem; color: #555;
@@ -452,7 +451,6 @@
           </thead>
           <tbody id="dmTableBody"></tbody>
         </table>
-        <button class="btn dm-add-row" onclick="addDmItem()">+ Add Item</button>
         <div class="dm-summary">
           <span><span id="dmSelectedCount">0</span> selected of <span id="dmTotalCount">0</span></span>
           <span>Selected total: <strong id="dmSelectedTotal">$0</strong></span>
@@ -516,20 +514,24 @@
 
     function renderDmTable() {
       const tbody = document.getElementById('dmTableBody');
-      if (!dmItems.length) {
-        tbody.innerHTML = '<tr class="dm-empty"><td colspan="4">No items yet. Click "+ Add Item" to create one.</td></tr>';
-      } else {
-        tbody.innerHTML = dmItems.map(item => {
-          const sel = dmSelectedIds.has(item.id);
-          const costDisplay = item.cost ? '$' + Math.round(item.cost).toLocaleString('en-US') : '';
-          return `<tr class="${sel ? 'dm-selected' : ''}" data-id="${item.id}">
-            <td class="dm-col-toggle"><input type="checkbox" class="dm-row-toggle" ${sel ? 'checked' : ''}></td>
-            <td class="dm-col-desc"><input type="text" class="dm-row-desc" value="${escapeHtml(item.description)}"></td>
-            <td class="dm-col-cost"><input type="text" class="dm-row-cost" value="${escapeHtml(costDisplay)}"></td>
-            <td class="dm-col-actions"><button class="dm-row-del" title="Delete">&times;</button></td>
-          </tr>`;
-        }).join('');
-      }
+      const rowsHtml = dmItems.map(item => {
+        const sel = dmSelectedIds.has(item.id);
+        const costDisplay = item.cost ? '$' + Math.round(item.cost).toLocaleString('en-US') : '';
+        return `<tr class="${sel ? 'dm-selected' : ''}" data-id="${item.id}">
+          <td class="dm-col-toggle"><input type="checkbox" class="dm-row-toggle" ${sel ? 'checked' : ''}></td>
+          <td class="dm-col-desc"><input type="text" class="dm-row-desc" value="${escapeHtml(item.description)}"></td>
+          <td class="dm-col-cost"><input type="text" class="dm-row-cost" value="${escapeHtml(costDisplay)}"></td>
+          <td class="dm-col-actions"><button class="dm-row-del" title="Delete">&times;</button></td>
+        </tr>`;
+      }).join('');
+      // Always include one trailing draft row at the bottom
+      const draftHtml = `<tr class="dm-draft" data-draft="1">
+        <td class="dm-col-toggle"></td>
+        <td class="dm-col-desc"><input type="text" class="dm-row-desc" placeholder="Description"></td>
+        <td class="dm-col-cost"><input type="text" class="dm-row-cost" placeholder="Cost"></td>
+        <td class="dm-col-actions"></td>
+      </tr>`;
+      tbody.innerHTML = rowsHtml + draftHtml;
       updateDmSummary();
     }
 
@@ -555,23 +557,20 @@
       }
     }
 
-    async function addDmItem() {
+    async function promoteDraftRow(description, cost) {
       try {
         const res = await fetch(API_BASE + '/api/dm-items', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ description: '', cost: 0 })
+          body: JSON.stringify({ description, cost })
         });
-        if (!res.ok) { showStatus('Add failed'); return; }
+        if (!res.ok) { showStatus('Add failed'); return null; }
         const item = await res.json();
         dmItems.push(item);
-        renderDmTable();
-        // Focus the new row's description input
-        const tbody = document.getElementById('dmTableBody');
-        const lastRow = tbody.querySelector(`tr[data-id="${item.id}"]`);
-        if (lastRow) lastRow.querySelector('.dm-row-desc').focus();
+        return item;
       } catch (e) {
         showStatus('Add failed');
+        return null;
       }
     }
 
@@ -614,7 +613,37 @@
     }
 
     // Bind row events via event delegation on tbody
-    document.getElementById('dmTableBody').addEventListener('input', function(e) {
+    document.getElementById('dmTableBody').addEventListener('input', async function(e) {
+      const draftTr = e.target.closest('tr.dm-draft');
+      if (draftTr) {
+        // First keystroke in the draft row promotes it to a real item
+        if (!e.target.classList.contains('dm-row-desc') && !e.target.classList.contains('dm-row-cost')) return;
+        const descEl = draftTr.querySelector('.dm-row-desc');
+        const costEl = draftTr.querySelector('.dm-row-cost');
+        const description = descEl.value;
+        const costNum = parseFloat(costEl.value.replace(/[^0-9.\-]/g, '')) || 0;
+        // Capture which input had focus and the cursor position
+        const focused = document.activeElement;
+        const focusedClass = focused && focused.classList.contains('dm-row-desc') ? 'desc'
+                          : focused && focused.classList.contains('dm-row-cost') ? 'cost' : null;
+        const caret = focused && focused.selectionStart != null ? focused.selectionStart : null;
+
+        const item = await promoteDraftRow(description, costNum);
+        if (!item) return;
+        renderDmTable();
+        // Restore focus to the corresponding input on the now-saved row
+        const tbody = document.getElementById('dmTableBody');
+        const newRow = tbody.querySelector(`tr[data-id="${item.id}"]`);
+        if (newRow && focusedClass) {
+          const target = newRow.querySelector('.dm-row-' + focusedClass);
+          if (target) {
+            target.focus();
+            if (caret != null) target.setSelectionRange(caret, caret);
+          }
+        }
+        return;
+      }
+
       const tr = e.target.closest('tr[data-id]');
       if (!tr) return;
       const id = tr.dataset.id;
@@ -1260,6 +1289,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.10.0</div>
+  <div class="version">v0.10.1</div>
 </body>
 </html>
