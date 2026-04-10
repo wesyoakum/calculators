@@ -106,11 +106,13 @@
     }
     .quote-box input {
       font-size: 1.5rem; font-weight: 700; width: 100%;
-      text-align: center; background: transparent; border: none;
-      color: inherit; padding: 0; font-family: inherit;
+      text-align: center; background: transparent;
+      border: 1px solid #c0c8d0; border-radius: 4px;
+      color: inherit; padding: 4px 6px; font-family: inherit;
     }
     .quote-box input:focus {
-      outline: 2px solid #1a3a5c; outline-offset: 2px; border-radius: 4px;
+      outline: none; border-color: #1a3a5c;
+      box-shadow: 0 0 0 2px rgba(26,58,92,0.15);
     }
     .margin-box-good { background: #d4edda; color: #155724; }
     .margin-box-low { background: #f8d7da; color: #721c24; }
@@ -1584,6 +1586,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.11.1</div>
+  <div class="version">v0.11.2</div>
 </body>
 </html>
