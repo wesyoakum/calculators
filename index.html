@@ -117,7 +117,7 @@
     .margin-box-good { background: #d4edda; color: #155724; }
     .margin-box-low { background: #f8d7da; color: #721c24; }
 
-    .margin-label { font-size: 0.8rem; text-align: center; margin-top: 6px; color: #666; }
+    .margin-label { font-size: 0.7rem; text-align: center; margin-top: 4px; color: inherit; opacity: 0.85; }
 
     /* Direct Material library table */
     .dm-table { table-layout: fixed; }
@@ -279,9 +279,9 @@
           <div class="price-box" id="marginBox">
             <div class="price-box-label">Estimated Gross Margin</div>
             <div class="price-box-value" id="marginValue"></div>
+            <div id="marginLabel" class="margin-label"></div>
           </div>
         </div>
-        <div id="marginLabel" class="margin-label"></div>
       </div>
 
       <div class="card" style="margin-top: 16px;">
@@ -541,10 +541,13 @@
       return neg ? '($' + s + ')' : '$' + s;
     }
 
-    function fmtPct(n) {
+    function fmtPct(n, decimals = 1) {
       if (!isFinite(n)) return '-';
-      return (n * 100).toFixed(1) + '%';
+      return (n * 100).toFixed(decimals) + '%';
     }
+
+    // Decimal places to display for % of Target / % of Quote, matching each row's Target %
+    const PCT_DECIMALS = { dm: 0, dl: 0, imoh: 0, other: 1, total: 1 };
 
     function formatInput(el) {
       const raw = el.value.replace(/[^0-9.\-]/g, '');
@@ -1130,22 +1133,22 @@
 
       // Display helpers: null → '-', else format (so intentional 0 shows as $0)
       const fmtKnown = v => v !== null ? fmtDollar(v) : '-';
-      const fmtPctKnown = (n, d) => (n !== null && d !== null && d !== 0) ? fmtPct(n / d) : '-';
+      const fmtPctKnown = (n, d, decimals = 1) => (n !== null && d !== null && d !== 0) ? fmtPct(n / d, decimals) : '-';
 
       document.getElementById('rTotal').textContent = fmtKnown(totalCost);
 
-      document.getElementById('rDmPctT').textContent = fmtPctKnown(dm, targetPrice);
-      document.getElementById('rDlPctT').textContent = fmtPctKnown(dl, targetPrice);
-      document.getElementById('rImohPctT').textContent = fmtPctKnown(imoh, targetPrice);
-      document.getElementById('rOtherPctT').textContent = fmtPctKnown(other, targetPrice);
-      document.getElementById('rTotalPctT').textContent = fmtPctKnown(totalCost, targetPrice);
+      document.getElementById('rDmPctT').textContent = fmtPctKnown(dm, targetPrice, PCT_DECIMALS.dm);
+      document.getElementById('rDlPctT').textContent = fmtPctKnown(dl, targetPrice, PCT_DECIMALS.dl);
+      document.getElementById('rImohPctT').textContent = fmtPctKnown(imoh, targetPrice, PCT_DECIMALS.imoh);
+      document.getElementById('rOtherPctT').textContent = fmtPctKnown(other, targetPrice, PCT_DECIMALS.other);
+      document.getElementById('rTotalPctT').textContent = fmtPctKnown(totalCost, targetPrice, PCT_DECIMALS.total);
 
-      document.getElementById('rDmPctQ').textContent = fmtPctKnown(dm, quote);
-      document.getElementById('rDlPctQ').textContent = fmtPctKnown(dl, quote);
-      document.getElementById('rImohPctQ').textContent = fmtPctKnown(imoh, quote);
-      document.getElementById('rOtherPctQ').textContent = fmtPctKnown(other, quote);
+      document.getElementById('rDmPctQ').textContent = fmtPctKnown(dm, quote, PCT_DECIMALS.dm);
+      document.getElementById('rDlPctQ').textContent = fmtPctKnown(dl, quote, PCT_DECIMALS.dl);
+      document.getElementById('rImohPctQ').textContent = fmtPctKnown(imoh, quote, PCT_DECIMALS.imoh);
+      document.getElementById('rOtherPctQ').textContent = fmtPctKnown(other, quote, PCT_DECIMALS.other);
       const dmDlImohSum = (dm !== null || dl !== null || imoh !== null) ? ((dm||0)+(dl||0)+(imoh||0)) : null;
-      document.getElementById('rTotalPctQ').textContent = fmtPctKnown(dmDlImohSum, quote);
+      document.getElementById('rTotalPctQ').textContent = fmtPctKnown(dmDlImohSum, quote, PCT_DECIMALS.total);
 
       document.getElementById('rTargetPrice').textContent = fmtKnown(targetPrice);
 
@@ -1156,8 +1159,8 @@
         const margin = quote - totalCost;
         const marginPct = margin / quote;
         marginValue.textContent = fmtDollar(margin) + '  (' + fmtPct(marginPct) + ')';
-        marginBox.className = 'price-box ' + (marginPct >= 0.285 ? 'margin-box-good' : 'margin-box-low');
-        marginLabel.textContent = marginPct >= 0.285 ? 'Good (>= 28.5%)' : 'Too Low (< 28.5%)';
+        marginBox.className = 'price-box ' + (marginPct > 0.284 ? 'margin-box-good' : 'margin-box-low');
+        marginLabel.textContent = marginPct > 0.284 ? 'Good (> 28.4%)' : 'Too Low (<= 28.4%)';
       } else {
         marginValue.textContent = '-';
         marginBox.className = 'price-box';
@@ -1586,6 +1589,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.11.2</div>
+  <div class="version">v0.11.3</div>
 </body>
 </html>
