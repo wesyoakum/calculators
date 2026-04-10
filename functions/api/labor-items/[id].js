@@ -15,6 +15,10 @@ export async function onRequestPut(context) {
       const h = body.hours && typeof body.hours === 'object' ? body.hours : {};
       sets.push('hours = ?'); vals.push(JSON.stringify(h));
     }
+    if (body.rates !== undefined) {
+      const r = body.rates && typeof body.rates === 'object' ? body.rates : {};
+      sets.push('rates = ?'); vals.push(JSON.stringify(r));
+    }
     sets.push('updated_at = ?'); vals.push(now);
     vals.push(id);
 

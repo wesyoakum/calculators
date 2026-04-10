@@ -143,24 +143,44 @@
     .dm-row-del:hover { color: #c0002a; }
 
     /* Labor library table — wider, with one column per work center */
-    .lab-lib-table { table-layout: fixed; width: 100%; }
-    .lab-lib-table th, .lab-lib-table td { padding: 6px 6px; vertical-align: middle; }
-    .lab-lib-table th.lab-col-toggle, .lab-lib-table td.lab-col-toggle { width: 50px; text-align: center; }
+    .lab-lib-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
+    .lab-lib-table th, .lab-lib-table td { padding: 4px 5px; vertical-align: middle; }
+    .lab-lib-table th.lab-col-toggle, .lab-lib-table td.lab-col-toggle { width: 44px; text-align: center; }
     .lab-lib-table th.lab-col-desc { text-align: left; }
-    .lab-lib-table th.lab-col-wc, .lab-lib-table td.lab-col-wc { width: 72px; text-align: right; font-size: 0.8rem; }
-    .lab-lib-table th.lab-col-cost, .lab-lib-table td.lab-col-cost { width: 110px; text-align: right; }
-    .lab-lib-table th.lab-col-actions, .lab-lib-table td.lab-col-actions { width: 50px; text-align: center; }
+    .lab-lib-table td.lab-col-desc { text-align: left; }
+    .lab-lib-table th.lab-col-wc, .lab-lib-table td.lab-col-wc { width: 70px; text-align: right; font-size: 0.8rem; }
+    .lab-lib-table th.lab-col-cost, .lab-lib-table td.lab-col-cost { width: 96px; text-align: right; }
+    .lab-lib-table th.lab-col-actions, .lab-lib-table td.lab-col-actions { width: 70px; text-align: center; }
     .lab-lib-table input[type="text"] {
-      width: 100%; padding: 5px 6px; border: 1px solid #c0c8d0;
+      width: 100%; padding: 4px 6px; border: 1px solid #c0c8d0;
       border-radius: 4px; font-size: 0.85rem; background: #fff5a8;
     }
     .lab-lib-table td.lab-col-wc input { text-align: right; }
+    .lab-lib-table tr.lab-rate-row td.lab-col-wc input {
+      background: #f4f7fb; font-size: 0.78rem; color: #555;
+    }
+    .lab-lib-table tr.lab-rate-row td.lab-col-wc input::placeholder { color: #9aa3ad; }
     .lab-lib-table input[type="text"]:focus {
       outline: none; border-color: #1a3a5c; box-shadow: 0 0 0 2px rgba(26,58,92,0.15);
     }
     .lab-lib-table tr.dm-selected { background: #e0eaf4; }
     .lab-lib-table tr.dm-draft input { background: #fff; }
+    .lab-lib-table tr.dm-draft.lab-rate-row input { background: #fafbfc; }
     .lab-lib-table td.lab-col-cost { font-weight: 600; color: #1a3a5c; }
+    .lab-lib-table tr.lab-hours-row td { border-bottom: none; padding-bottom: 2px; }
+    .lab-lib-table tr.lab-rate-row td { border-top: none; padding-top: 2px; padding-bottom: 8px; border-bottom: 1px solid #e0e4e8; }
+    .lab-row-label {
+      display: inline-block; font-size: 0.65rem; color: #888;
+      text-transform: uppercase; letter-spacing: 0.3px;
+      margin-left: 4px; margin-right: 4px;
+    }
+    .lab-btn-copy, .lab-btn-save {
+      background: #eef2f7; border: 1px solid #c0c8d0; color: #1a3a5c;
+      cursor: pointer; font-size: 0.8rem; padding: 3px 8px;
+      border-radius: 4px; font-weight: 600;
+    }
+    .lab-btn-copy:hover, .lab-btn-save:hover { background: #dde6f0; }
+    .lab-col-actions .dm-row-del { margin-left: 2px; }
     .dm-summary {
       margin-top: 14px; padding: 10px 12px; background: #f4f6f8;
       border-radius: 6px; font-size: 0.85rem; color: #555;
@@ -181,6 +201,12 @@
     /* Toggle switch */
     .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 8px 0; }
     .toggle-row label { font-size: 0.85rem; font-weight: 600; color: #1a3a5c; }
+    .dl-label-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .dl-label-row > span:first-child { font-weight: 600; }
+    .dl-mirror-note { font-size: 0.72rem; color: #666; font-weight: 500; }
+    .switch.switch-sm { width: 30px; height: 16px; }
+    .switch.switch-sm .slider::before { width: 12px; height: 12px; }
+    .switch.switch-sm input:checked + .slider::before { transform: translateX(14px); }
     .switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
@@ -305,7 +331,16 @@
             <td colspan="5"><div class="link-note" id="dmNote"></div></td>
           </tr>
           <tr>
-            <td>Direct Labor (DL)</td>
+            <td>
+              <div class="dl-label-row">
+                <span>Direct Labor (DL)</span>
+                <label class="switch switch-sm" title="Feed total from Labor Cost tab into Direct Labor">
+                  <input type="checkbox" class="useLaborCalcMirror">
+                  <span class="slider"></span>
+                </label>
+                <span class="dl-mirror-note">Use Labor Cost tab</span>
+              </div>
+            </td>
             <td><input type="text" id="dl"></td>
             <td class="target-pct">25%</td>
             <td id="rDlPctT"></td>
@@ -386,76 +421,32 @@
           <label class="switch"><input type="checkbox" id="useLaborCalc"><span class="slider"></span></label>
           <label for="useLaborCalc">Feed total into Pricing Engine as Direct Labor</label>
         </div>
-        <h2>Work Centers</h2>
-        <table class="labor-table">
-          <tr>
-            <th>Work Center</th>
-            <th>Hours</th>
-            <th>Rate ($/hr)</th>
-            <th>Cost</th>
-            <th>% of Total</th>
-          </tr>
-          <tr>
-            <td>Fab</td>
-            <td><input type="text" id="labHrsFab" value="4"></td>
-            <td><input type="text" id="labRateFab" value="23.00"></td>
-            <td id="labCostFab"></td>
-            <td id="labPctFab"></td>
-          </tr>
-          <tr>
-            <td>Paint</td>
-            <td><input type="text" id="labHrsPaint" value="4"></td>
-            <td><input type="text" id="labRatePaint" value="23.00"></td>
-            <td id="labCostPaint"></td>
-            <td id="labPctPaint"></td>
-          </tr>
-          <tr>
-            <td>Mechanical</td>
-            <td><input type="text" id="labHrsMechanical" value="4"></td>
-            <td><input type="text" id="labRateMechanical" value="23.00"></td>
-            <td id="labCostMechanical"></td>
-            <td id="labPctMechanical"></td>
-          </tr>
-          <tr>
-            <td>Electrical</td>
-            <td><input type="text" id="labHrsElectrical" value="2"></td>
-            <td><input type="text" id="labRateElectrical" value="23.00"></td>
-            <td id="labCostElectrical"></td>
-            <td id="labPctElectrical"></td>
-          </tr>
-          <tr>
-            <td>Hydraulic</td>
-            <td><input type="text" id="labHrsHydraulic" value="2"></td>
-            <td><input type="text" id="labRateHydraulic" value="23.00"></td>
-            <td id="labCostHydraulic"></td>
-            <td id="labPctHydraulic"></td>
-          </tr>
-          <tr>
-            <td>Engineering</td>
-            <td><input type="text" id="labHrsEngineering" value="4"></td>
-            <td><input type="text" id="labRateEngineering" value="23.00"></td>
-            <td id="labCostEngineering"></td>
-            <td id="labPctEngineering"></td>
-          </tr>
-          <tr>
-            <td>Testing</td>
-            <td><input type="text" id="labHrsTesting" value="3"></td>
-            <td><input type="text" id="labRateTesting" value="23.00"></td>
-            <td id="labCostTesting"></td>
-            <td id="labPctTesting"></td>
-          </tr>
-          <tr class="total">
-            <td>Work Centers Total</td>
-            <td id="labHrsTotal"></td>
-            <td></td>
-            <td id="labCostTotal"></td>
-            <td></td>
-          </tr>
+        <h2>Current Project Labor</h2>
+        <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px;">
+          Each work center has a row for hours and a row for rate. Blank rate defaults to $<span id="curDefaultRate">23</span>/hr.
+        </p>
+        <table class="lab-lib-table">
+          <thead>
+            <tr>
+              <th class="lab-col-toggle"></th>
+              <th class="lab-col-desc">Description</th>
+              <th class="lab-col-wc">Fab</th>
+              <th class="lab-col-wc">Paint</th>
+              <th class="lab-col-wc">Mech</th>
+              <th class="lab-col-wc">Elec</th>
+              <th class="lab-col-wc">Hyd</th>
+              <th class="lab-col-wc">Test</th>
+              <th class="lab-col-wc">Eng</th>
+              <th class="lab-col-cost">Cost</th>
+              <th class="lab-col-actions"></th>
+            </tr>
+          </thead>
+          <tbody id="laborCurrentBody"></tbody>
         </table>
 
         <h2 style="margin-top: 24px;">Labor Library</h2>
         <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px;">
-          Shared across all projects. Hours per work center are saved with the library item; the cost is recomputed using the rates above each time. Toggle items on to add their cost to this project's labor total.
+          Shared across all projects. Each item stores its own hours and rates. Toggle items on to add their cost to this project's labor total. Use <strong>&uarr;</strong> to copy an item's numbers into the current project above.
         </p>
         <table class="lab-lib-table">
           <thead>
@@ -467,8 +458,8 @@
               <th class="lab-col-wc">Mech</th>
               <th class="lab-col-wc">Elec</th>
               <th class="lab-col-wc">Hyd</th>
-              <th class="lab-col-wc">Eng</th>
               <th class="lab-col-wc">Test</th>
+              <th class="lab-col-wc">Eng</th>
               <th class="lab-col-cost">Cost</th>
               <th class="lab-col-actions"></th>
             </tr>
@@ -581,14 +572,14 @@
           <td class="dm-col-actions"><button class="dm-row-del" title="Delete">&times;</button></td>
         </tr>`;
       }).join('');
-      // Always include one trailing draft row at the bottom
+      // Draft row at the top — new items promote and are added above existing rows
       const draftHtml = `<tr class="dm-draft" data-draft="1">
         <td class="dm-col-toggle"></td>
         <td class="dm-col-desc"><input type="text" class="dm-row-desc" placeholder="Description"></td>
         <td class="dm-col-cost"><input type="text" class="dm-row-cost" placeholder="Cost"></td>
         <td class="dm-col-actions"></td>
       </tr>`;
-      tbody.innerHTML = rowsHtml + draftHtml;
+      tbody.innerHTML = draftHtml + rowsHtml;
       updateDmSummary();
     }
 
@@ -623,7 +614,7 @@
         });
         if (!res.ok) { showStatus('Add failed'); return null; }
         const item = await res.json();
-        dmItems.push(item);
+        dmItems.unshift(item);
         return item;
       } catch (e) {
         showStatus('Add failed');
@@ -744,78 +735,146 @@
     }, true);
 
     // ==================== LABOR LIBRARY ====================
-    const workCenters = ['Fab', 'Paint', 'Mechanical', 'Electrical', 'Hydraulic', 'Engineering', 'Testing'];
+    const workCenters = ['Fab', 'Paint', 'Mechanical', 'Electrical', 'Hydraulic', 'Testing', 'Engineering'];
+    const WC_SHORT = { Fab: 'Fab', Paint: 'Paint', Mechanical: 'Mech', Electrical: 'Elec', Hydraulic: 'Hyd', Testing: 'Test', Engineering: 'Eng' };
+    const DEFAULT_RATE = 23;
     let laborItems = [];
     const laborSelectedIds = new Set();
     let laborLibTotal = 0;
 
-    function getCurrentRates() {
-      const r = {};
-      workCenters.forEach(wc => { r[wc] = parseNum('labRate' + wc); });
-      return r;
+    function fmtCostCell(cost) {
+      return cost ? '$' + Math.round(cost).toLocaleString('en-US') : '$0';
     }
 
-    function computeLaborItemCost(item, rates) {
+    function computeLaborItemCost(item) {
       const h = item.hours || {};
+      const r = item.rates || {};
       let total = 0;
-      workCenters.forEach(wc => { total += (Number(h[wc]) || 0) * (rates[wc] || 0); });
+      workCenters.forEach(wc => {
+        const hr = Number(h[wc]) || 0;
+        const rtRaw = r[wc];
+        const rt = (rtRaw == null || rtRaw === '') ? DEFAULT_RATE : (Number(rtRaw) || DEFAULT_RATE);
+        total += hr * rt;
+      });
       return total;
     }
 
+    // ---------- Current Project entry (same format as library rows) ----------
+    const currentEntry = { hours: {}, rates: {} };
+
+    function renderCurrentEntryRow() {
+      const tbody = document.getElementById('laborCurrentBody');
+      const hrsCells = workCenters.map(wc => {
+        const v = currentEntry.hours[wc];
+        const display = (v == null || v === '') ? '' : v;
+        return `<td class="lab-col-wc"><input type="text" class="lab-cur-hr" data-wc="${wc}" placeholder="Hrs" value="${escapeHtml(String(display))}"></td>`;
+      }).join('');
+      const rateCells = workCenters.map(wc => {
+        const v = currentEntry.rates[wc];
+        const display = (v == null || v === '') ? '' : v;
+        return `<td class="lab-col-wc"><input type="text" class="lab-cur-rt" data-wc="${wc}" placeholder="$${DEFAULT_RATE}" value="${escapeHtml(String(display))}"></td>`;
+      }).join('');
+      const cost = computeLaborItemCost(currentEntry);
+      tbody.innerHTML = `
+        <tr class="lab-hours-row">
+          <td class="lab-col-toggle" rowspan="2"></td>
+          <td class="lab-col-desc" rowspan="2"><strong>Current Project</strong><div class="lab-row-label">Hours / Rate</div></td>
+          ${hrsCells}
+          <td class="lab-col-cost" rowspan="2" id="labCurCost">${fmtCostCell(cost)}</td>
+          <td class="lab-col-actions" rowspan="2"><button type="button" class="lab-btn-save" id="btnSaveCurrentToLib" title="Save current entry to library">Save</button></td>
+        </tr>
+        <tr class="lab-rate-row">
+          ${rateCells}
+        </tr>`;
+    }
+
+    function refreshCurrentEntryCost() {
+      const cell = document.getElementById('labCurCost');
+      if (cell) cell.textContent = fmtCostCell(computeLaborItemCost(currentEntry));
+    }
+
+    function setCurrentEntryFrom(hours, rates) {
+      currentEntry.hours = { ...(hours || {}) };
+      currentEntry.rates = { ...(rates || {}) };
+      renderCurrentEntryRow();
+    }
+
+    // ---------- Labor Library ----------
     function renderLaborLibTable() {
       const tbody = document.getElementById('laborLibBody');
-      const rates = getCurrentRates();
-      const rowsHtml = laborItems.map(item => {
-        const sel = laborSelectedIds.has(item.id);
-        const cost = computeLaborItemCost(item, rates);
-        const costDisplay = cost ? '$' + Math.round(cost).toLocaleString('en-US') : '$0';
-        const hours = item.hours || {};
-        const hrCells = workCenters.map(wc => {
-          const v = hours[wc];
-          const display = (v == null || v === '') ? '' : v;
-          return `<td class="lab-col-wc"><input type="text" class="lab-row-hr" data-wc="${wc}" value="${escapeHtml(String(display))}"></td>`;
-        }).join('');
-        return `<tr class="${sel ? 'dm-selected' : ''}" data-id="${item.id}">
-          <td class="lab-col-toggle"><input type="checkbox" class="lab-row-toggle" ${sel ? 'checked' : ''}></td>
-          <td class="lab-col-desc"><input type="text" class="lab-row-desc" value="${escapeHtml(item.description)}"></td>
-          ${hrCells}
-          <td class="lab-col-cost">${costDisplay}</td>
-          <td class="lab-col-actions"><button class="dm-row-del lab-row-del" title="Delete">&times;</button></td>
-        </tr>`;
-      }).join('');
-      const draftHrCells = workCenters.map(wc =>
-        `<td class="lab-col-wc"><input type="text" class="lab-row-hr" data-wc="${wc}" placeholder="0"></td>`
-      ).join('');
-      const draftHtml = `<tr class="dm-draft" data-draft="1">
-        <td class="lab-col-toggle"></td>
-        <td class="lab-col-desc"><input type="text" class="lab-row-desc" placeholder="Description"></td>
-        ${draftHrCells}
-        <td class="lab-col-cost">$0</td>
-        <td class="lab-col-actions"></td>
-      </tr>`;
-      tbody.innerHTML = rowsHtml + draftHtml;
+      const draftHtml = renderLaborDraftRows();
+      const rowsHtml = laborItems.map(item => renderLaborItemRows(item)).join('');
+      tbody.innerHTML = draftHtml + rowsHtml;
       updateLaborLibSummary();
     }
 
+    function renderLaborItemRows(item) {
+      const sel = laborSelectedIds.has(item.id);
+      const hours = item.hours || {};
+      const rates = item.rates || {};
+      const cost = computeLaborItemCost(item);
+      const hrsCells = workCenters.map(wc => {
+        const v = hours[wc];
+        const display = (v == null || v === '') ? '' : v;
+        return `<td class="lab-col-wc"><input type="text" class="lab-row-hr" data-wc="${wc}" placeholder="Hrs" value="${escapeHtml(String(display))}"></td>`;
+      }).join('');
+      const rateCells = workCenters.map(wc => {
+        const v = rates[wc];
+        const display = (v == null || v === '') ? '' : v;
+        return `<td class="lab-col-wc"><input type="text" class="lab-row-rt" data-wc="${wc}" placeholder="$${DEFAULT_RATE}" value="${escapeHtml(String(display))}"></td>`;
+      }).join('');
+      return `
+        <tr class="${sel ? 'dm-selected' : ''} lab-hours-row" data-id="${item.id}">
+          <td class="lab-col-toggle" rowspan="2"><input type="checkbox" class="lab-row-toggle" ${sel ? 'checked' : ''}></td>
+          <td class="lab-col-desc" rowspan="2"><input type="text" class="lab-row-desc" value="${escapeHtml(item.description)}"><div class="lab-row-label">Hours / Rate</div></td>
+          ${hrsCells}
+          <td class="lab-col-cost" rowspan="2">${fmtCostCell(cost)}</td>
+          <td class="lab-col-actions" rowspan="2">
+            <button type="button" class="lab-btn-copy lab-row-copy" title="Copy this item's numbers into Current Project">&uarr;</button>
+            <button type="button" class="dm-row-del lab-row-del" title="Delete">&times;</button>
+          </td>
+        </tr>
+        <tr class="${sel ? 'dm-selected' : ''} lab-rate-row" data-id="${item.id}">
+          ${rateCells}
+        </tr>`;
+    }
+
+    function renderLaborDraftRows() {
+      const draftHrCells = workCenters.map(wc =>
+        `<td class="lab-col-wc"><input type="text" class="lab-row-hr" data-wc="${wc}" placeholder="Hrs"></td>`
+      ).join('');
+      const draftRtCells = workCenters.map(wc =>
+        `<td class="lab-col-wc"><input type="text" class="lab-row-rt" data-wc="${wc}" placeholder="$${DEFAULT_RATE}"></td>`
+      ).join('');
+      return `
+        <tr class="dm-draft lab-hours-row" data-draft="1">
+          <td class="lab-col-toggle" rowspan="2"></td>
+          <td class="lab-col-desc" rowspan="2"><input type="text" class="lab-row-desc" placeholder="Description"><div class="lab-row-label">Hours / Rate</div></td>
+          ${draftHrCells}
+          <td class="lab-col-cost" rowspan="2">$0</td>
+          <td class="lab-col-actions" rowspan="2"></td>
+        </tr>
+        <tr class="dm-draft lab-rate-row" data-draft="1">
+          ${draftRtCells}
+        </tr>`;
+    }
+
     function updateLaborLibSummary() {
-      const rates = getCurrentRates();
       laborLibTotal = laborItems.reduce((sum, it) =>
-        laborSelectedIds.has(it.id) ? sum + computeLaborItemCost(it, rates) : sum, 0);
+        laborSelectedIds.has(it.id) ? sum + computeLaborItemCost(it) : sum, 0);
       document.getElementById('laborLibSelectedCount').textContent = laborSelectedIds.size;
       document.getElementById('laborLibTotalCount').textContent = laborItems.length;
       document.getElementById('laborLibSelectedTotal').textContent = '$' + Math.round(laborLibTotal).toLocaleString('en-US');
     }
 
     function refreshLaborLibCostCells() {
-      const rates = getCurrentRates();
       const tbody = document.getElementById('laborLibBody');
       laborItems.forEach(item => {
-        const tr = tbody.querySelector(`tr[data-id="${item.id}"]`);
+        const tr = tbody.querySelector(`tr.lab-hours-row[data-id="${item.id}"]`);
         if (!tr) return;
         const cell = tr.querySelector('.lab-col-cost');
         if (!cell) return;
-        const cost = computeLaborItemCost(item, rates);
-        cell.textContent = cost ? '$' + Math.round(cost).toLocaleString('en-US') : '$0';
+        cell.textContent = fmtCostCell(computeLaborItemCost(item));
       });
     }
 
@@ -833,17 +892,18 @@
       }
     }
 
-    async function promoteLaborDraftRow(description, hours) {
+    async function createLaborItem(description, hours, rates) {
       try {
         const res = await fetch(API_BASE + '/api/labor-items', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ description, hours })
+          body: JSON.stringify({ description, hours, rates })
         });
         if (!res.ok) { showStatus('Add failed'); return null; }
         const item = await res.json();
         if (!item.hours) item.hours = hours || {};
-        laborItems.push(item);
+        if (!item.rates) item.rates = rates || {};
+        laborItems.unshift(item);
         return item;
       } catch (e) {
         showStatus('Add failed');
@@ -881,46 +941,85 @@
       }
     }
 
-    function readDraftHours(draftTr) {
-      const out = {};
-      draftTr.querySelectorAll('.lab-row-hr').forEach(inp => {
-        const wc = inp.dataset.wc;
-        const num = parseFloat(inp.value);
-        if (!isNaN(num) && num !== 0) out[wc] = num;
+    function readDraftFromRows(tbody) {
+      const descEl = tbody.querySelector('tr.dm-draft .lab-row-desc');
+      const description = descEl ? descEl.value : '';
+      const hours = {};
+      const rates = {};
+      tbody.querySelectorAll('tr.dm-draft.lab-hours-row .lab-row-hr').forEach(inp => {
+        const n = parseFloat(inp.value);
+        if (!isNaN(n) && n !== 0) hours[inp.dataset.wc] = n;
       });
-      return out;
+      tbody.querySelectorAll('tr.dm-draft.lab-rate-row .lab-row-rt').forEach(inp => {
+        const n = parseFloat(inp.value);
+        if (!isNaN(n)) rates[inp.dataset.wc] = n;
+      });
+      return { description, hours, rates };
     }
 
-    function draftHasContent(draftTr) {
-      const desc = draftTr.querySelector('.lab-row-desc');
-      if (desc && desc.value.trim()) return true;
-      const hrs = draftTr.querySelectorAll('.lab-row-hr');
-      for (const inp of hrs) {
-        const num = parseFloat(inp.value);
-        if (!isNaN(num) && num !== 0) return true;
-      }
+    function draftHasContent(tbody) {
+      const { description, hours, rates } = readDraftFromRows(tbody);
+      if (description.trim()) return true;
+      if (Object.keys(hours).length > 0) return true;
+      if (Object.keys(rates).length > 0) return true;
       return false;
     }
 
+    // ---------- Current Entry input handling ----------
+    document.getElementById('laborCurrentBody').addEventListener('input', function(e) {
+      const t = e.target;
+      if (t.classList.contains('lab-cur-hr')) {
+        const wc = t.dataset.wc;
+        const n = parseFloat(t.value);
+        if (isNaN(n)) delete currentEntry.hours[wc];
+        else currentEntry.hours[wc] = n;
+        refreshCurrentEntryCost();
+        calculateLabor();
+      } else if (t.classList.contains('lab-cur-rt')) {
+        const wc = t.dataset.wc;
+        const n = parseFloat(t.value);
+        if (isNaN(n)) delete currentEntry.rates[wc];
+        else currentEntry.rates[wc] = n;
+        refreshCurrentEntryCost();
+        calculateLabor();
+      }
+    });
+
+    document.getElementById('laborCurrentBody').addEventListener('click', async function(e) {
+      if (e.target && e.target.id === 'btnSaveCurrentToLib') {
+        const desc = prompt('Name for this library entry:', 'Saved ' + new Date().toLocaleDateString());
+        if (desc === null) return;
+        const item = await createLaborItem(desc || 'Untitled', { ...currentEntry.hours }, { ...currentEntry.rates });
+        if (item) {
+          renderLaborLibTable();
+          calculateLabor();
+          showStatus('Saved to library');
+        }
+      }
+    });
+
+    // ---------- Library input handling ----------
     document.getElementById('laborLibBody').addEventListener('input', async function(e) {
       const draftTr = e.target.closest('tr.dm-draft');
       if (draftTr) {
-        if (!e.target.classList.contains('lab-row-desc') && !e.target.classList.contains('lab-row-hr')) return;
-        if (!draftHasContent(draftTr)) return;
-        const description = draftTr.querySelector('.lab-row-desc').value;
-        const hours = readDraftHours(draftTr);
+        if (!e.target.classList.contains('lab-row-desc') &&
+            !e.target.classList.contains('lab-row-hr') &&
+            !e.target.classList.contains('lab-row-rt')) return;
+        const tbody = document.getElementById('laborLibBody');
+        if (!draftHasContent(tbody)) return;
+        const { description, hours, rates } = readDraftFromRows(tbody);
         const focused = document.activeElement;
         let focusSelector = null;
         if (focused && focused.classList.contains('lab-row-desc')) focusSelector = '.lab-row-desc';
         else if (focused && focused.classList.contains('lab-row-hr')) focusSelector = `.lab-row-hr[data-wc="${focused.dataset.wc}"]`;
+        else if (focused && focused.classList.contains('lab-row-rt')) focusSelector = `.lab-row-rt[data-wc="${focused.dataset.wc}"]`;
         const caret = focused && focused.selectionStart != null ? focused.selectionStart : null;
-        const item = await promoteLaborDraftRow(description, hours);
+        const item = await createLaborItem(description, hours, rates);
         if (!item) return;
         renderLaborLibTable();
-        const tbody = document.getElementById('laborLibBody');
         const newRow = tbody.querySelector(`tr[data-id="${item.id}"]`);
         if (newRow && focusSelector) {
-          const target = newRow.querySelector(focusSelector);
+          const target = newRow.parentElement.querySelector(`tr[data-id="${item.id}"] ${focusSelector}`);
           if (target) {
             target.focus();
             if (caret != null && target.setSelectionRange) {
@@ -946,15 +1045,29 @@
         if (isNaN(num) || num === 0) delete item.hours[wc];
         else item.hours[wc] = num;
         scheduleLaborSave(id, { hours: item.hours });
-        // Update the cost cell on this row inline
-        const rates = getCurrentRates();
-        const cost = computeLaborItemCost(item, rates);
-        const cell = tr.querySelector('.lab-col-cost');
-        if (cell) cell.textContent = cost ? '$' + Math.round(cost).toLocaleString('en-US') : '$0';
+        updateLabLibRowCost(item);
+        if (laborSelectedIds.has(id)) calculateLabor();
+        else updateLaborLibSummary();
+      } else if (e.target.classList.contains('lab-row-rt')) {
+        const wc = e.target.dataset.wc;
+        if (!item.rates) item.rates = {};
+        const num = parseFloat(e.target.value);
+        if (isNaN(num)) delete item.rates[wc];
+        else item.rates[wc] = num;
+        scheduleLaborSave(id, { rates: item.rates });
+        updateLabLibRowCost(item);
         if (laborSelectedIds.has(id)) calculateLabor();
         else updateLaborLibSummary();
       }
     });
+
+    function updateLabLibRowCost(item) {
+      const tbody = document.getElementById('laborLibBody');
+      const tr = tbody.querySelector(`tr.lab-hours-row[data-id="${item.id}"]`);
+      if (!tr) return;
+      const cell = tr.querySelector('.lab-col-cost');
+      if (cell) cell.textContent = fmtCostCell(computeLaborItemCost(item));
+    }
 
     document.getElementById('laborLibBody').addEventListener('change', function(e) {
       if (!e.target.classList.contains('lab-row-toggle')) return;
@@ -963,15 +1076,26 @@
       const id = tr.dataset.id;
       if (e.target.checked) laborSelectedIds.add(id);
       else laborSelectedIds.delete(id);
-      tr.classList.toggle('dm-selected', e.target.checked);
+      // Toggle class on BOTH rows of this item
+      document.querySelectorAll(`#laborLibBody tr[data-id="${id}"]`).forEach(r => {
+        r.classList.toggle('dm-selected', e.target.checked);
+      });
       calculateLabor();
     });
 
     document.getElementById('laborLibBody').addEventListener('click', function(e) {
-      if (!e.target.classList.contains('lab-row-del')) return;
       const tr = e.target.closest('tr[data-id]');
       if (!tr) return;
-      deleteLaborItem(tr.dataset.id);
+      const id = tr.dataset.id;
+      if (e.target.classList.contains('lab-row-del')) {
+        deleteLaborItem(id);
+      } else if (e.target.classList.contains('lab-row-copy')) {
+        const item = laborItems.find(i => i.id === id);
+        if (!item) return;
+        setCurrentEntryFrom(item.hours || {}, item.rates || {});
+        calculateLabor();
+        showStatus('Copied to Current Project');
+      }
     });
 
     // ==================== LABOR LINK ====================
@@ -979,6 +1103,8 @@
 
     function syncLaborToggle() {
       const on = document.getElementById('useLaborCalc').checked;
+      // Keep mirror switches in sync
+      document.querySelectorAll('.useLaborCalcMirror').forEach(el => { el.checked = on; });
       const dlInput = document.getElementById('dl');
       if (on) {
         dlInput.value = '$' + Math.round(laborTotal).toLocaleString('en-US');
@@ -992,6 +1118,12 @@
     }
 
     document.getElementById('useLaborCalc').addEventListener('change', syncLaborToggle);
+    document.querySelectorAll('.useLaborCalcMirror').forEach(el => {
+      el.addEventListener('change', function() {
+        document.getElementById('useLaborCalc').checked = this.checked;
+        syncLaborToggle();
+      });
+    });
 
     // ==================== PRICING ENGINE ====================
     // Fixed target percentages (not user-editable)
@@ -1186,31 +1318,11 @@
 
     // ==================== LABOR COST CALCULATOR ====================
     function calculateLabor() {
-      let totalHrs = 0;
-      let workCenterCost = 0;
-      const costs = {};
-
-      workCenters.forEach(wc => {
-        const hrs = parseNum('labHrs' + wc);
-        const rate = parseNum('labRate' + wc);
-        const cost = hrs * rate;
-        costs[wc] = cost;
-        totalHrs += hrs;
-        workCenterCost += cost;
-        document.getElementById('labCost' + wc).textContent = fmtDollar(cost);
-      });
-
-      document.getElementById('labHrsTotal').textContent = totalHrs;
-      document.getElementById('labCostTotal').textContent = fmtDollar(workCenterCost);
-
-      workCenters.forEach(wc => {
-        document.getElementById('labPct' + wc).textContent = workCenterCost ? fmtPct(costs[wc] / workCenterCost) : '-';
-      });
-
-      // Refresh labor library cost cells (they depend on current rates) and subtotal
+      const currentCost = computeLaborItemCost(currentEntry);
+      refreshCurrentEntryCost();
       refreshLaborLibCostCells();
       updateLaborLibSummary();
-      const grandTotal = workCenterCost + laborLibTotal;
+      const grandTotal = currentCost + laborLibTotal;
       document.getElementById('laborGrandTotal').textContent = fmtDollar(grandTotal);
 
       laborTotal = grandTotal;
@@ -1232,9 +1344,9 @@
       el.addEventListener('blur', function() { formatInput(this); });
     });
 
-    document.querySelectorAll('#labor input').forEach(el => {
-      el.addEventListener('input', calculateLabor);
-    });
+    // Initial render of the Current Project entry table
+    renderCurrentEntryRow();
+    renderLaborLibTable();
 
     calculatePricing();
     calculateLabor();
@@ -1263,14 +1375,9 @@
         laborSelected: Array.from(laborSelectedIds),
         labor: {
           useLaborCalc: document.getElementById('useLaborCalc').checked,
-          workCenters: {
-            Fab: { hours: parseNum('labHrsFab'), rate: parseNum('labRateFab') },
-            Paint: { hours: parseNum('labHrsPaint'), rate: parseNum('labRatePaint') },
-            Mechanical: { hours: parseNum('labHrsMechanical'), rate: parseNum('labRateMechanical') },
-            Electrical: { hours: parseNum('labHrsElectrical'), rate: parseNum('labRateElectrical') },
-            Hydraulic: { hours: parseNum('labHrsHydraulic'), rate: parseNum('labRateHydraulic') },
-            Engineering: { hours: parseNum('labHrsEngineering'), rate: parseNum('labRateEngineering') },
-            Testing: { hours: parseNum('labHrsTesting'), rate: parseNum('labRateTesting') }
+          currentEntry: {
+            hours: { ...currentEntry.hours },
+            rates: { ...currentEntry.rates }
           }
         }
       };
@@ -1305,14 +1412,24 @@
       }
       renderLaborLibTable();
       if (data.labor) {
-        const wc = data.labor.workCenters || {};
-        workCenters.forEach(name => {
-          if (wc[name]) {
-            document.getElementById('labHrs' + name).value = wc[name].hours;
-            document.getElementById('labRate' + name).value = wc[name].rate;
-          }
-        });
+        // Prefer new format; fall back to legacy workCenters format
+        if (data.labor.currentEntry) {
+          setCurrentEntryFrom(data.labor.currentEntry.hours || {}, data.labor.currentEntry.rates || {});
+        } else if (data.labor.workCenters) {
+          const hrs = {};
+          const rts = {};
+          Object.keys(data.labor.workCenters).forEach(name => {
+            const wc = data.labor.workCenters[name];
+            if (wc && wc.hours) hrs[name] = wc.hours;
+            if (wc && wc.rate) rts[name] = wc.rate;
+          });
+          setCurrentEntryFrom(hrs, rts);
+        } else {
+          setCurrentEntryFrom({}, {});
+        }
         document.getElementById('useLaborCalc').checked = !!data.labor.useLaborCalc;
+      } else {
+        setCurrentEntryFrom({}, {});
       }
       calculateLabor();
       syncLaborToggle();
@@ -1347,15 +1464,10 @@
         // Reset to blank pricing inputs; labor inputs keep defaults
         deserializeState({
           pricing: {},
-          labor: { useLaborCalc: false, workCenters: {
-            Fab: { hours: 4, rate: 23 },
-            Paint: { hours: 4, rate: 23 },
-            Mechanical: { hours: 4, rate: 23 },
-            Electrical: { hours: 2, rate: 23 },
-            Hydraulic: { hours: 2, rate: 23 },
-            Engineering: { hours: 4, rate: 23 },
-            Testing: { hours: 3, rate: 23 }
-          } }
+          labor: {
+            useLaborCalc: false,
+            currentEntry: { hours: {}, rates: {} }
+          }
         });
         showStatus('New project');
         return;
@@ -1589,6 +1701,6 @@
       URL.revokeObjectURL(url);
     }
   </script>
-  <div class="version">v0.11.3</div>
+  <div class="version">v0.12.0</div>
 </body>
 </html>

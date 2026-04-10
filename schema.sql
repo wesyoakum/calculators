@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS labor_items (
   id          TEXT PRIMARY KEY,
   description TEXT NOT NULL DEFAULT '',
   hours       TEXT NOT NULL DEFAULT '{}',
+  rates       TEXT NOT NULL DEFAULT '{}',
   cost        REAL NOT NULL DEFAULT 0,
   created_at  TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at  TEXT NOT NULL DEFAULT (datetime('now'))

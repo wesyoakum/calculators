@@ -1,7 +1,7 @@
 export async function onRequestGet(context) {
   try {
     const { results } = await context.env.DB.prepare(
-      'SELECT id, description, cost FROM dm_items ORDER BY created_at ASC'
+      'SELECT id, description, cost FROM dm_items ORDER BY created_at DESC'
     ).all();
     return Response.json(results);
   } catch (e) {
